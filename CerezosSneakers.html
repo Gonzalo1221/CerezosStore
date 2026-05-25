@@ -4242,6 +4242,54 @@ function buildReceiptBody(sale) {
     const isCredit = sale.creditType === 'credito';
     const itemsHtml = (sale.items || []).map(i => `<tr><td style="font-size:11px;">${i.name}</td><td style="text-align:center;font-size:11px;">${i.qty}</td><td style="text-align:right;font-size:11px;">$${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td></tr>`).join('');
     const ivaPercent = sale.subtotal ? Math.round((sale.tax / sale.subtotal) * 100) : ivaRate;
+    const subtotalConIva = sale.subtotal + sale.tax;
+    const hasInterest = isCredit && sale.creditInterestAmount > 0;
+    const baseFinanced = sale.creditBaseFinanced || (sale.subtotal + sale.tax - (sale.downPayment || 0));
+    const interestRate = sale.creditInterestRate || 0;
+    const manualTotal = sale.total !== (subtotalConIva + (hasInterest ? sale.creditInterestAmount : 0));
+    let breakdownHtml = `
+        <div style="border-top:1px dashed #ccc;padding-top:6px;margin-top:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--gray);">Subtotal (productos):</span><span>$${sale.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--gray);">+ IVA (${ivaPercent}%):</span><span>$${sale.tax.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px dotted #ccc;"><span style="color:var(--gray);font-weight:600;">= Subtotal con IVA:</span><span style="font-weight:600;">$${subtotalConIva.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>`;
+
+    if (isCredit && sale.downPayment > 0) {
+        breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--gray);">− Abono inicial:</span><span style="color:var(--danger);">−$${sale.downPayment.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px dotted #ccc;"><span style="color:var(--gray);font-weight:600;">= Base a financiar:</span><span style="font-weight:600;">$${baseFinanced.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>`;
+    }
+
+    if (hasInterest) {
+        breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--gray);">+ Interés (${(interestRate * 100).toFixed(0)}% s/base):</span><span style="color:var(--warning);">+$${sale.creditInterestAmount.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>`;
+    } else if (isCredit && sale.creditInstallments > 1 && !manualTotal) {
+        breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--gray);">+ Interés:</span><span style="color:var(--success);">$0 (Sin interés)</span></div>`;
+    }
+
+    if (manualTotal) {
+        breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span style="color:var(--info);font-style:italic;">* Precio manual ajustado</span></div>`;
+    }
+
+    breakdownHtml += `
+            <div class="receipt-total" style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:2px solid #333;font-size:13px;font-weight:700;"><span>TOTAL${isCredit ? ' A PAGAR' : ''}:</span><span>$${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>`;
+
+    if (isCredit) {
+        breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--danger);"><span>Restante por pagar:</span><span>$${sale.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>`;
+        if (sale.creditInstallments > 1) {
+            breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#856404;"><span>${sale.creditInstallments} cuotas de:</span><span>$${sale.creditInstallmentValue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>`;
+        }
+        if (sale.creditDueDate) {
+            breakdownHtml += `
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);"><span>Vencimiento:</span><span>${sale.creditDueDate}</span></div>`;
+        }
+    }
+
+    breakdownHtml += `</div>`;
+
     return `
         <div class="logo-print" style="text-align:center;margin-bottom:8px;">
             <img src="assets/logo.png" alt="Cerezos Sneaker" style="width:55px;height:55px;object-fit:contain;border-radius:50%;border:2px solid #b8860b;padding:3px;">
@@ -4258,15 +4306,8 @@ function buildReceiptBody(sale) {
                 ${itemsHtml}
             </tbody>
         </table>
-        <div style="border-top:1px dashed #ccc;padding-top:6px;margin-top:4px;">
-            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span>Subtotal:</span><span>$${sale.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span>IVA (${ivaPercent}%):</span><span>$${sale.tax.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
-            ${isCredit && sale.downPayment > 0 ? `<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px;"><span>Abono Inicial:</span><span>$${sale.downPayment.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>` : ''}
-            <div class="receipt-total" style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:2px solid #333;font-size:13px;font-weight:700;"><span>TOTAL:</span><span>$${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
-            ${isCredit ? `<div style="display:flex;justify-content:space-between;margin-top:2px;font-size:10px;color:#e74c3c;"><span>Restante:</span><span>$${sale.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>` : ''}
-            ${isCredit && sale.creditInstallments > 1 ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:#856404;margin-top:2px;"><span>${sale.creditInstallments} cuotas de:</span><span>$${sale.creditInstallmentValue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>` : ''}
-        </div>
-        <div style="margin-top:6px;font-size:9px;color:#999;text-align:center;">Método: ${sale.payMethod}${isCredit && sale.creditDueDate ? ' · Vence: ' + sale.creditDueDate : ''}</div>
+        ${breakdownHtml}
+        <div style="margin-top:6px;font-size:9px;color:#999;text-align:center;">Método: ${sale.payMethod}</div>
         <div style="margin-top:10px;text-align:center;font-size:11px;font-weight:600;">¡Gracias por tu compra!<br><span style="font-size:9px;font-weight:400;color:#999;" class="receipt-business-name">${businessName}</span></div>
     `;
 }
@@ -4301,10 +4342,29 @@ function printCurrentSale() {
 }
 
 function getSalePlainText(sale) {
-    let text = `${businessName.toUpperCase()}\n${businessAddress}\nTel: ${businessPhone}${businessRfc ? ' · RFC: ' + businessRfc : ''}\n${sale.ticket} · ${sale.date}\nCliente: ${sale.client}\n\nArtículos:\n`;
-    (sale.items || []).forEach(i => { text += `${i.qty}x ${i.name} - $${(i.price * i.qty).toFixed(2)}\n`; });
-    text += `\nSubtotal: $${sale.subtotal.toFixed(2)}\nIVA: $${sale.tax.toFixed(2)}\nTOTAL: $${sale.total.toFixed(2)}\nMétodo: ${sale.payMethod}`;
-    if (sale.creditType === 'credito') text += `\nRestante: $${sale.creditRemaining.toFixed(2)}`;
+    const isCredit = sale.creditType === 'credito';
+    const ivaPct = sale.subtotal ? Math.round((sale.tax / sale.subtotal) * 100) : ivaRate;
+    let text = `${businessName.toUpperCase()}\n${businessAddress}\nTel: ${businessPhone}${businessRfc ? ' · RFC: ' + businessRfc : ''}\n${sale.ticket} · ${sale.date}\nCliente: ${sale.client}\n`;
+    if (isCredit) text += `*** VENTA A CREDITO ***\n`;
+    if (isCredit && sale.creditInstallments > 1) text += `${sale.creditInstallments} cuotas de $${sale.creditInstallmentValue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`;
+    text += `\nArticulos:\n`;
+    (sale.items || []).forEach(i => { text += `${i.qty}x ${i.name} - $${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`; });
+    const subtotalConIva = sale.subtotal + sale.tax;
+    text += `\nSubtotal (productos): $${sale.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    text += `\n+ IVA (${ivaPct}%): $${sale.tax.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    text += `\n= Subtotal con IVA: $${subtotalConIva.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    if (isCredit && sale.downPayment > 0) {
+        const baseFinanced = sale.creditBaseFinanced || (subtotalConIva - sale.downPayment);
+        text += `\n- Abono inicial: $${sale.downPayment.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+        text += `\n= Base a financiar: $${baseFinanced.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    }
+    if (isCredit && sale.creditInterestAmount > 0) {
+        text += `\n+ Interes (${(sale.creditInterestRate * 100).toFixed(0)}%): $${sale.creditInterestAmount.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    }
+    text += `\n\nTOTAL${isCredit ? ' A PAGAR' : ''}: $${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    if (isCredit && sale.creditRemaining > 0) text += `\nRestante: $${sale.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+    if (isCredit && sale.creditDueDate) text += `\nVence: ${sale.creditDueDate}`;
+    text += `\nMetodo: ${sale.payMethod}`;
     return text;
 }
 
@@ -4337,8 +4397,11 @@ async function downloadSalePdf(saleId) {
         const items = sale.items || [];
         const ivaPct = sale.subtotal ? Math.round((sale.tax / sale.subtotal) * 100) : ivaRate;
         const isCredit = sale.creditType === 'credito';
+        const hasInterest = isCredit && sale.creditInterestAmount > 0;
+        const subtotalConIva = sale.subtotal + sale.tax;
+        const baseFinanced = sale.creditBaseFinanced || (sale.subtotal + sale.tax - (sale.downPayment || 0));
 
-        const estLines = 17 + items.length * 2 + (isCredit ? 2 : 0) + (sale.downPayment > 0 ? 2 : 0);
+        const estLines = 17 + items.length * 2 + (isCredit ? 4 : 0) + (sale.downPayment > 0 ? 2 : 0) + (hasInterest ? 2 : 0);
         const height = Math.max(estLines * 4 + 20, 100);
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PW, height] });
 
@@ -4346,7 +4409,8 @@ async function downloadSalePdf(saleId) {
 
         function center(text, size = 10, style = 'bold') { pdf.setFontSize(size); pdf.setFont('helvetica', style); pdf.text(text, PW / 2, y, { align: 'center' }); y += size * 0.45; }
         function lineOut() { pdf.setDrawColor(200); pdf.line(M, y, PW - M, y); y += 3; }
-        function row(label, value) { pdf.setFontSize(7); pdf.setFont('helvetica', 'normal'); pdf.text(label, M, y); pdf.text(value, PW - M, y, { align: 'right' }); y += 4; }
+        function dotLine() { pdf.setDrawColor(180); pdf.setLineDashPattern([1, 2], 0); pdf.line(M, y, PW - M, y); pdf.setLineDashPattern([], 0); y += 3; }
+        function row(label, value, size = 7, style = 'normal') { pdf.setFontSize(size); pdf.setFont('helvetica', style); pdf.text(label, M, y); pdf.text(value, PW - M, y, { align: 'right' }); y += 3.5; }
 
         center(businessName.toUpperCase(), 10, 'bold');
         pdf.setFontSize(7); pdf.setFont('helvetica', 'normal');
@@ -4381,29 +4445,45 @@ async function downloadSalePdf(saleId) {
         });
         y += 1;
         lineOut();
-        row('Subtotal:', '$' + sale.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
-        row('IVA (' + ivaPct + '%):', '$' + sale.tax.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+
+        // Breakdown
+        row('Subtotal (productos):', '$' + sale.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), 7, 'normal');
+        row('+ IVA (' + ivaPct + '%):', '$' + sale.tax.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), 7, 'normal');
+        dotLine();
+        row('= Subtotal con IVA:', '$' + subtotalConIva.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), 7, 'bold');
+
         if (isCredit && sale.downPayment > 0) {
-            row('Abono Inicial:', '$' + sale.downPayment.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+            row('- Abono inicial:', '-$' + sale.downPayment.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), 7, 'normal');
+            dotLine();
+            row('= Base a financiar:', '$' + baseFinanced.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), 7, 'bold');
+        }
+
+        if (hasInterest) {
+            row('+ Interes (' + (sale.creditInterestRate * 100).toFixed(0) + '%):', '+$' + sale.creditInterestAmount.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), 7, 'normal');
         }
 
         pdf.setDrawColor(0); pdf.setLineWidth(0.5);
         pdf.line(M, y, PW - M, y); y += 3;
         pdf.setFontSize(9); pdf.setFont('helvetica', 'bold');
-        pdf.text('TOTAL:', M, y);
+        pdf.text('TOTAL' + (isCredit ? ' A PAGAR' : '') + ':', M, y);
         pdf.text('$' + sale.total.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), PW - M, y, { align: 'right' }); y += 5;
 
-        if (isCredit && sale.creditRemaining > 0) {
+        if (isCredit) {
             pdf.setFontSize(7); pdf.setFont('helvetica', 'normal');
-            row('Restante:', '$' + sale.creditRemaining.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+            if (sale.creditRemaining > 0) {
+                row('Restante:', '$' + sale.creditRemaining.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+            }
+            if (sale.creditInstallments > 1) {
+                row(sale.creditInstallments + ' cuotas de:', '$' + sale.creditInstallmentValue.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+            }
+            if (sale.creditDueDate) {
+                row('Vence:', sale.creditDueDate);
+            }
         }
 
         y += 2;
         pdf.setFontSize(7); pdf.setFont('helvetica', 'normal');
         pdf.text('Metodo: ' + sale.payMethod, PW / 2, y, { align: 'center' }); y += 3.5;
-        if (isCredit && sale.creditDueDate) {
-            pdf.text('Vence: ' + sale.creditDueDate, PW / 2, y, { align: 'center' }); y += 3.5;
-        }
         y += 3;
         center('Gracias por tu compra!', 8, 'bold');
         pdf.setFontSize(6); pdf.setFont('helvetica', 'normal');
