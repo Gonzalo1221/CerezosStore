@@ -46,7 +46,8 @@ CREATE TABLE clients (
   phone TEXT,
   email TEXT,
   credit_limit NUMERIC DEFAULT 0,
-  credit_used NUMERIC DEFAULT 0
+  credit_used NUMERIC DEFAULT 0,
+  credit_enabled BOOLEAN DEFAULT TRUE
 );
 
 -- Sales
@@ -129,3 +130,6 @@ CREATE TABLE settings (
   credit_limit NUMERIC DEFAULT 10000,
   credit_days INT DEFAULT 30
 );
+
+-- Migration for existing databases: add credit_enabled column
+-- ALTER TABLE clients ADD COLUMN IF NOT EXISTS credit_enabled BOOLEAN DEFAULT TRUE;

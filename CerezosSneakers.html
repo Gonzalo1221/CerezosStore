@@ -3285,6 +3285,9 @@ function confirmAction() {
         renderCredits();
         showToast('Venta eliminada', 'success');
     } else if (pendingDeleteType === 'client') {
+        // Nullify clientId in their sales so lookups don't break
+        sales.filter(s => s.clientId === pendingDeleteId).forEach(s => { s.clientId = null; });
+        saveSales();
         clients = clients.filter(c => c.id !== pendingDeleteId);
         saveClients();
         syncDeleteFromSupabase('clients', pendingDeleteId);
@@ -3975,7 +3978,21 @@ function completeSale() {
     cart = [];
     editingSaleId = null;
     editingSaleBackup = null;
+    manualTotalOverride = null;
     document.getElementById('confirmSaleBtn').innerHTML = '<i class="bi bi-check-lg"></i> Confirmar Venta';
+    // Clear checkout form fields
+    document.getElementById('checkoutClient').value = '';
+    document.getElementById('checkoutNotes').value = '';
+    document.getElementById('manualTotalInput').value = '';
+    document.getElementById('editTotalRow').style.display = 'none';
+    document.getElementById('creditDownPayment').value = '';
+    document.getElementById('creditInstallments').value = '1';
+    document.querySelector('input[name="payMethod"][value="Efectivo"]').checked = true;
+    document.getElementById('clientCreditInfo').style.display = 'none';
+    document.getElementById('creditOptions').style.display = 'none';
+    document.getElementById('creditRemaining').textContent = '$0';
+    document.getElementById('creditInterestAmount').textContent = '$0';
+    document.getElementById('creditInstallmentValue').textContent = '$0';
     renderCart();
     renderPosProducts();
     renderInventory();
@@ -4624,7 +4641,6 @@ function renderCredits() {
     const pendingSales = sales.filter(s => s.creditType === 'credito' && s.creditRemaining > 0).sort((a, b) => new Date(a.creditDueDate) - new Date(b.creditDueDate));
     
     pendingBody.innerHTML = pendingSales.map(s => {
-        const client = clients.find(c => c.id === s.clientId);
         const isOverdue = s.creditDueDate && new Date(s.creditDueDate) < new Date();
         const statusClass = isOverdue ? 'overdue' : 'pending';
         const statusLabel = isOverdue ? 'Vencido' : 'Pendiente';
@@ -4964,10 +4980,14 @@ function saveClientEdit() {
 function deleteClient(id) {
     const client = clients.find(c => c.id === id);
     if (!client) return;
+    const salesCount = sales.filter(s => s.clientId === id).length;
     const pendingCreditSales = sales.filter(s => s.clientId === id && s.creditType === 'credito' && s.creditRemaining > 0);
     let msg = `¿Estás seguro de que deseas eliminar a "${client.name}"?`;
+    if (salesCount > 0) {
+        msg = `⚠️ "${client.name}" tiene ${salesCount} venta(s) registradas. Se desvincularán los datos del cliente de esas ventas. ¿Eliminar de todas formas?`;
+    }
     if (pendingCreditSales.length > 0) {
-        msg = `⚠️ "${client.name}" tiene ${pendingCreditSales.length} venta(s) a crédito pendiente(s). ¿Eliminar de todas formas?`;
+        msg = `⚠️ "${client.name}" tiene ${pendingCreditSales.length} venta(s) a crédito pendiente(s). Se desvincularán los datos del cliente de esas ventas. ¿Eliminar de todas formas?`;
     }
     pendingDeleteId = id;
     pendingDeleteType = 'client';
