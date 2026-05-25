@@ -635,6 +635,14 @@
         .page-section { display: none; }
         .page-section.active { display: block; }
 
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .switch-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--gray); border-radius: 22px; transition: 0.3s; }
+        .switch .switch-slider::before { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: 0.3s; }
+        .switch input:checked + .switch-slider { background: var(--success); }
+        .switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
         @media (max-width: 480px) {
             .login-card { padding: 32px 24px; }
             .login-title { font-size: 22px; }
@@ -952,6 +960,9 @@
                     <i class="bi bi-credit-card-2-front"></i> Créditos
                     <span class="badge" id="creditsBadge" style="display:none;">0</span>
                 </div>
+                <div class="nav-item" data-page="clients" onclick="navigateTo('clients', this)">
+                    <i class="bi bi-people"></i> Clientes
+                </div>
                 <div class="nav-item" data-page="reports" onclick="navigateTo('reports', this)">
                     <i class="bi bi-bar-chart-fill"></i> Reportes
                 </div>
@@ -967,10 +978,10 @@
             </div>
         </nav>
         <div class="sidebar-footer">
-            <div class="user-avatar">A</div>
+            <div class="user-avatar" id="sidebarAvatar">A</div>
             <div class="user-info">
                 <h4 id="sidebarUserName">Admin</h4>
-                <small>Super Admin</small>
+                <small id="sidebarUserRole">Super Admin</small>
             </div>
             <button class="logout-btn" onclick="handleLogout()" title="Cerrar sesión">
                 <i class="bi bi-box-arrow-right"></i>
@@ -1289,6 +1300,45 @@
                                 </tr>
                             </thead>
                             <tbody id="pendingCreditsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CLIENTS -->
+        <div class="page-section" id="page-clients">
+            <div class="page-header">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+                    <h1><i class="bi bi-people"></i> Clientes</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary btn-sm" onclick="showModal('clientModal')"><i class="bi bi-person-plus"></i> Nuevo Cliente</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="bi bi-person-lines-fill" style="color:var(--primary)"></i> Todos los Clientes</h3>
+                    <div class="search-input-wrap" style="max-width:300px;">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="form-input" placeholder="Buscar cliente..." id="clientSearch" oninput="renderClients()">
+                    </div>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Teléfono</th>
+                                    <th>Email</th>
+                                    <th>Límite Crédito</th>
+                                    <th>Crédito Activo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -1835,6 +1885,48 @@
     </div>
 </div>
 
+<!-- Edit Client Modal -->
+<div class="modal-overlay" id="editClientModal">
+    <div class="modal" style="width:460px;">
+        <div class="modal-header">
+            <h3>✏️ Editar Cliente</h3>
+            <button class="modal-close" onclick="hideModal('editClientModal')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nombre del Cliente</label>
+                <input type="text" class="form-input" id="editClientName" placeholder="Nombre completo">
+            </div>
+            <div class="form-group">
+                <label>Teléfono</label>
+                <input type="text" class="form-input" id="editClientPhone" placeholder="+52 555 000 0000">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-input" id="editClientEmail" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="form-group">
+                <label>Límite de Crédito ($) <span style="font-size:11px;color:var(--gray-light);font-weight:400;">(0 = Sin límite)</span></label>
+                <input type="number" class="form-input" id="editClientCreditLimit" placeholder="0 = Sin límite">
+            </div>
+            <div class="form-group">
+                <label>Crédito Activo</label>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <label class="switch" style="width:48px;height:26px;">
+                        <input type="checkbox" id="editClientCreditToggle">
+                        <span class="switch-slider" style="border-radius:26px;"></span>
+                    </label>
+                    <span id="editClientCreditStatus" style="font-size:13px;color:var(--gray-light);">Activado</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="hideModal('editClientModal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveClientEdit()" style="width:auto;"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
 <!-- Abono Modal -->
 <div class="modal-overlay" id="abonoModal">
     <div class="modal" style="width:460px;">
@@ -1941,6 +2033,73 @@
     </div>
 </div>
 
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editUserModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ Editar Usuario</h3>
+            <button class="modal-close" onclick="hideModal('editUserModal')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nombre Completo</label>
+                <input type="text" class="form-input" id="editUserName" placeholder="Nombre completo">
+            </div>
+            <div class="form-group">
+                <label>Correo Electrónico</label>
+                <input type="email" class="form-input" id="editUserEmail" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="form-group">
+                <label>Nueva Contraseña <span style="font-size:11px;color:var(--gray-light);font-weight:400;">(dejar vacío para mantener actual)</span></label>
+                <input type="password" class="form-input" id="editUserPass" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+                <label>Rol</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <label class="payment-method-label">
+                        <input type="radio" name="editUserRole" value="Vendedor"> <span> Vendedor</span>
+                    </label>
+                    <label class="payment-method-label">
+                        <input type="radio" name="editUserRole" value="Administrador"> <span>👑 Administrador</span>
+                    </label>
+                    <label class="payment-method-label">
+                        <input type="radio" name="editUserRole" value="Super Admin"> <span>🔰 Super Admin</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="hideModal('editUserModal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveUserEdit()" style="width:auto;"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- Super Admin Approval Modal -->
+<div class="modal-overlay" id="superAdminAuthModal">
+    <div class="modal" style="width:400px;">
+        <div class="modal-header">
+            <h3>🔰 Aprobación de Super Admin</h3>
+            <button class="modal-close" onclick="hideModal('superAdminAuthModal')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--gray-light);font-size:14px;margin-bottom:16px;">Se requiere autorización de un Super Admin para eliminar a este Administrador.</p>
+            <div class="form-group">
+                <label>Correo del Super Admin</label>
+                <input type="email" class="form-input" id="superAuthEmail" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" class="form-input" id="superAuthPass" placeholder="••••••••">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="hideModal('superAdminAuthModal')">Cancelar</button>
+            <button class="btn btn-danger" onclick="confirmSuperAdminAuth()">Autorizar y Eliminar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Confirm Delete Modal -->
 <div class="modal-overlay" id="confirmModal">
     <div class="modal" style="width:400px;">
@@ -2043,6 +2202,7 @@ let pendingDeleteId = null;
 let pendingDeleteType = null;
 let currentAbonoSaleId = null;
 let currentEditClientId = null;
+let currentUser = null;
 
 // ============ KEY MAPPING (camelCase ↔ snake_case) ============
 function snakeToCamel(str) {
@@ -2285,6 +2445,7 @@ function reRenderCurrentPage() {
     else if (id === 'page-credits') renderCredits();
     else if (id === 'page-reports') renderReports();
     else if (id === 'page-users') renderUsers();
+    else if (id === 'page-clients') renderClients();
     else if (id === 'page-dashboard') renderDashboard();
     else if (id === 'page-quotes') renderQuotes();
 }
@@ -2414,15 +2575,22 @@ function getSession() {
         return null;
     } catch (e) { return null; }
 }
+function updateSidebarUser(user) {
+    document.getElementById('sidebarUserName').textContent = user.name;
+    document.getElementById('sidebarUserRole').textContent = user.role;
+    const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+    document.getElementById('sidebarAvatar').textContent = initials;
+}
+
 function checkSessionOnLoad() {
     const sess = getSession();
     if (sess) {
         const user = users.find(u => u.id === sess.userId);
         if (user) {
+            currentUser = user;
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appLayout').classList.add('active');
-            const nameEl = document.getElementById('sidebarUserName');
-            if (nameEl) nameEl.textContent = user.name;
+            updateSidebarUser(user);
             showToast(`Bienvenido de nuevo, ${user.name}`, 'success');
             initApp();
             return true;
@@ -2470,10 +2638,11 @@ async function handleLogin() {
     if (constantTimeCompare(enteredHash, user.passwordHash)) {
         attempts[email] = { count: 0, lockedUntil: 0 };
         localStorage.setItem('cs_login_attempts', JSON.stringify(attempts));
+        currentUser = user;
         createSession(user);
         document.getElementById('loginPage').style.display = 'none';
         document.getElementById('appLayout').classList.add('active');
-        document.getElementById('sidebarUserName').textContent = user.name;
+        updateSidebarUser(user);
         showToast(`Bienvenido, ${user.name}`, 'success');
         initApp();
     } else {
@@ -2488,6 +2657,7 @@ async function handleLogin() {
 
 function handleLogout() {
     clearSession();
+    currentUser = null;
     document.getElementById('appLayout').classList.remove('active');
     document.getElementById('loginPage').style.display = 'flex';
     cart = [];
@@ -2512,6 +2682,7 @@ function navigateTo(page, el) {
     if (page === 'credits') renderCredits();
     if (page === 'reports') renderReports();
     if (page === 'users') renderUsers();
+    if (page === 'clients') renderClients();
     if (page === 'dashboard') renderDashboard();
     if (page === 'quotes') renderQuotes();
 }
@@ -2608,6 +2779,7 @@ function initApp() {
     renderCredits();
     updateQuotesCount();
     renderUsers();
+    renderClients();
     renderReports();
     updateInventoryCount();
     updateClientsDropdown();
@@ -3060,6 +3232,28 @@ function deleteProduct(id) {
     showModal('confirmModal');
 }
 
+async function confirmSuperAdminAuth() {
+    const email = document.getElementById('superAuthEmail').value.trim();
+    const pass = document.getElementById('superAuthPass').value;
+    if (!email || !pass) { showToast('Ingresa correo y contraseña del Super Admin', 'error'); return; }
+    const superAdmin = users.find(u => u.email === email && u.role === 'Super Admin');
+    if (!superAdmin) { showToast('No se encontró un Super Admin con ese correo', 'error'); return; }
+    const enteredHash = await hashPassword(pass, superAdmin.passwordSalt, superAdmin.passwordIterations || 100000);
+    if (!constantTimeCompare(enteredHash, superAdmin.passwordHash)) {
+        showToast('Contraseña incorrecta', 'error');
+        return;
+    }
+    hideModal('superAdminAuthModal');
+    // Proceed with deletion
+    users = users.filter(u => u.id !== pendingDeleteId);
+    saveUsers();
+    syncDeleteFromSupabase('users', pendingDeleteId);
+    renderUsers();
+    pendingDeleteId = null;
+    pendingDeleteType = null;
+    showToast('Usuario eliminado (aprobado por Super Admin)', 'success');
+}
+
 function confirmAction() {
     if (pendingDeleteType === 'product') {
         products = products.filter(p => p.id !== pendingDeleteId);
@@ -3073,6 +3267,7 @@ function confirmAction() {
         saveUsers();
         syncDeleteFromSupabase('users', pendingDeleteId);
         renderUsers();
+        document.getElementById('confirmBtn').textContent = 'Eliminar';
         showToast('Usuario eliminado', 'success');
     } else if (pendingDeleteType === 'sale') {
         sales = sales.filter(s => s.id !== pendingDeleteId);
@@ -3089,8 +3284,25 @@ function confirmAction() {
         renderDashboard();
         renderCredits();
         showToast('Venta eliminada', 'success');
+    } else if (pendingDeleteType === 'client') {
+        clients = clients.filter(c => c.id !== pendingDeleteId);
+        saveClients();
+        syncDeleteFromSupabase('clients', pendingDeleteId);
+        updateClientsDropdown();
+        reRenderCurrentPage();
+        showToast('Cliente eliminado', 'success');
+    } else if (pendingDeleteType === 'quote') {
+        quotes = quotes.filter(q => q.id !== pendingDeleteId);
+        saveQuotes();
+        syncDeleteFromSupabase('quotes', pendingDeleteId);
+        updateQuotesCount();
+        const totalPages = Math.ceil(quotes.length / ITEMS_PER_PAGE);
+        if (currentPage.quotes > totalPages) currentPage.quotes = Math.max(1, totalPages);
+        reRenderCurrentPage();
+        showToast('Cotización eliminada', 'success');
     }
     hideModal('confirmModal');
+    document.getElementById('confirmBtn').textContent = 'Eliminar';
     pendingDeleteId = null;
     pendingDeleteType = null;
 }
@@ -3401,7 +3613,7 @@ function saveClient() {
     const email = document.getElementById('clientEmail').value.trim();
     const creditLimit = parseFloat(document.getElementById('clientCreditLimit').value) || 0;
     if (!name) { showToast('Ingresa el nombre del cliente', 'error'); return; }
-    clients.push({ id: Date.now(), name, phone, email, creditLimit, creditUsed: 0 });
+    clients.push({ id: Date.now(), name, phone, email, creditLimit, creditUsed: 0, creditEnabled: true });
     saveClients();
     updateClientsDropdown();
     hideModal('clientModal');
@@ -3418,16 +3630,27 @@ function onClientChange() {
     const creditInfo = document.getElementById('clientCreditInfo');
     const creditoRadioLabel = document.getElementById('creditoRadioLabel');
     
-        if (clientId) {
-            const client = clients.find(c => c.id === parseInt(clientId));
-            if (client) {
-                const isUnlimited = client.creditLimit === 0;
-                const available = isUnlimited ? Infinity : client.creditLimit - client.creditUsed;
-                document.getElementById('clientAvailableCredit').textContent = isUnlimited ? '♾️ Sin límite' : '$' + available.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                document.getElementById('creditUsed').textContent = '$' + client.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                document.getElementById('creditLimit').textContent = isUnlimited ? '♾️ Ilimitado' : '$' + client.creditLimit.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-                
-                const pct = client.creditLimit > 0 ? (client.creditUsed / client.creditLimit * 100) : 0;
+    if (clientId) {
+        const client = clients.find(c => c.id === parseInt(clientId));
+        if (client) {
+            const creditEnabled = client.creditEnabled !== false;
+            if (!creditEnabled) {
+                creditInfo.style.display = 'none';
+                creditoRadioLabel.style.display = 'none';
+                const selected = document.querySelector('input[name="payMethod"]:checked');
+                if (selected && selected.value === 'Crédito') {
+                    document.querySelector('input[name="payMethod"][value="Efectivo"]').checked = true;
+                    toggleCreditOptions();
+                }
+                return;
+            }
+            const isUnlimited = client.creditLimit === 0;
+            const available = isUnlimited ? Infinity : client.creditLimit - client.creditUsed;
+            document.getElementById('clientAvailableCredit').textContent = isUnlimited ? '♾️ Sin límite' : '$' + available.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            document.getElementById('creditUsed').textContent = '$' + client.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            document.getElementById('creditLimit').textContent = isUnlimited ? '♾️ Ilimitado' : '$' + client.creditLimit.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            
+            const pct = client.creditLimit > 0 ? (client.creditUsed / client.creditLimit * 100) : 0;
             const barFill = document.getElementById('creditBarFill');
             barFill.style.width = pct + '%';
             barFill.className = 'credit-bar-fill ' + (pct < 50 ? 'safe' : pct < 80 ? 'warning' : 'danger');
@@ -3934,18 +4157,11 @@ function printQuote(id) {
 }
 
 function deleteQuote(id) {
+    pendingDeleteId = id;
+    pendingDeleteType = 'quote';
+    document.getElementById('confirmMessage').textContent = '¿Eliminar esta cotización? Esta acción no se puede deshacer.';
+    document.getElementById('confirmBtn').textContent = 'Eliminar Cotización';
     showModal('confirmModal');
-    document.getElementById('confirmMessage').innerHTML = '¿Eliminar esta cotización?<br><small style="color:var(--gray);">Esta acción no se puede deshacer</small>';
-    document.getElementById('confirmBtn').onclick = function() {
-        quotes = quotes.filter(q => q.id !== id);
-        saveQuotes();
-        updateQuotesCount();
-        const totalPages = Math.ceil(quotes.length / ITEMS_PER_PAGE);
-        if (currentPage.quotes > totalPages) currentPage.quotes = Math.max(1, totalPages);
-        reRenderCurrentPage();
-        hideModal('confirmModal');
-        showToast('Cotización eliminada', 'success');
-    };
 }
 
 function updateQuotesCount() {
@@ -4337,7 +4553,7 @@ function filterSalesHistory() { renderSalesHistory(); }
 // ============ CREDIT MANAGEMENT ============
 function renderCredits() {
     const search = (document.getElementById('creditSearch')?.value || '').toLowerCase();
-    const filteredClients = clients.filter(c => c.name.toLowerCase().includes(search) || (c.phone || '').includes(search));
+    const filteredClients = clients.filter(c => (c.creditUsed > 0 || c.creditEnabled !== false) && (c.name.toLowerCase().includes(search) || (c.phone || '').includes(search)));
     
     const totalCreditsPending = sales.filter(s => s.creditType === 'credito' && s.creditRemaining > 0).reduce((sum, s) => sum + s.creditRemaining, 0);
     const totalClientsWithCredit = clients.filter(c => c.creditUsed > 0).length;
@@ -4361,6 +4577,7 @@ function renderCredits() {
     
     const tbody = document.getElementById('creditsTableBody');
     tbody.innerHTML = filteredClients.map(c => {
+        const creditEnabled = c.creditEnabled !== false;
         const pendingSales = sales.filter(s => s.clientId === c.id && s.creditType === 'credito' && s.creditRemaining > 0);
         const isUnlimited = c.creditLimit === 0;
         const pct = isUnlimited ? 0 : (c.creditUsed / c.creditLimit * 100);
@@ -4370,12 +4587,12 @@ function renderCredits() {
         const statusLabel = isUnlimited ? 'Sin límite' : (pct >= 100 ? 'Límite Alcanzado' : pct >= 80 ? 'Alto Uso' : 'Normal');
         
         return `
-            <tr>
+            <tr style="${!creditEnabled ? 'opacity:0.6;' : ''}">
                 <td>
                     <div class="product-cell">
                         <div class="user-avatar" style="width:36px;height:36px;font-size:12px;">${c.name.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
                         <div class="product-info">
-                            <h4>${c.name}</h4>
+                            <h4>${c.name} ${!creditEnabled ? '<span style="font-size:10px;color:var(--danger);font-weight:400;">(Crédito desactivado)</span>' : ''}</h4>
                             <small>${c.email || ''}</small>
                         </div>
                     </div>
@@ -4537,12 +4754,13 @@ function viewClientCredits(clientId) {
     const clientPayments = creditPayments.filter(p => p.saleId && clientSales.some(s => s.id === p.saleId));
     
     const content = document.getElementById('viewSaleCreditContent');
+    const creditEnabled = client.creditEnabled !== false;
     content.innerHTML = `
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
             <div class="user-avatar" style="width:48px;height:48px;font-size:16px;">${client.name.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
             <div>
                 <h2 style="font-size:18px;">${client.name}</h2>
-                <p style="color:var(--gray);font-size:12px;">${client.phone || ''} · ${client.email || ''}</p>
+                <p style="color:var(--gray);font-size:12px;">${client.phone || ''} · ${client.email || ''} ${!creditEnabled ? '<span style="color:var(--danger);font-weight:600;">· Crédito desactivado</span>' : ''}</p>
             </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
@@ -4662,6 +4880,108 @@ function exportCredits() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Créditos exportados', 'success');
+}
+
+// ============ CLIENTS ============
+function renderClients() {
+    const search = (document.getElementById('clientSearch')?.value || '').toLowerCase();
+    const filtered = clients.filter(c => c.name.toLowerCase().includes(search) || (c.phone || '').includes(search) || (c.email || '').includes(search));
+    const tbody = document.getElementById('clientsTableBody');
+    tbody.innerHTML = filtered.map(c => {
+        const isUnlimited = c.creditLimit === 0;
+        const creditEnabled = c.creditEnabled !== false;
+        return `
+            <tr>
+                <td>
+                    <div class="product-cell">
+                        <div class="user-avatar" style="width:36px;height:36px;font-size:12px;">${c.name.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
+                        <div class="product-info">
+                            <h4>${c.name}</h4>
+                        </div>
+                    </div>
+                </td>
+                <td>${c.phone || '-'}</td>
+                <td>${c.email || '-'}</td>
+                <td style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">♾️ Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)">
+                        <span class="switch-slider"></span>
+                    </label>
+                </td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="action-btn edit" onclick="editClient(${c.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="action-btn delete" onclick="deleteClient(${c.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('') || '<tr><td colspan="6"><div class="empty-state"><i class="bi bi-people"></i><h3>No hay clientes registrados</h3><p>Agrega tu primer cliente para empezar</p></div></td></tr>';
+}
+
+function editClient(id) {
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    document.getElementById('editClientName').value = client.name;
+    document.getElementById('editClientPhone').value = client.phone || '';
+    document.getElementById('editClientEmail').value = client.email || '';
+    document.getElementById('editClientCreditLimit').value = client.creditLimit;
+    const toggle = document.getElementById('editClientCreditToggle');
+    toggle.checked = client.creditEnabled !== false;
+    document.getElementById('editClientCreditStatus').textContent = toggle.checked ? 'Activado' : 'Desactivado';
+    toggle.onchange = function() {
+        document.getElementById('editClientCreditStatus').textContent = this.checked ? 'Activado' : 'Desactivado';
+    };
+    document.getElementById('editClientModal').dataset.clientId = id;
+    showModal('editClientModal');
+}
+
+function saveClientEdit() {
+    const id = parseInt(document.getElementById('editClientModal').dataset.clientId);
+    const client = clients.find(c => c.id === id);
+    if (!client) { showToast('Cliente no encontrado', 'error'); return; }
+    const name = document.getElementById('editClientName').value.trim();
+    const phone = document.getElementById('editClientPhone').value.trim();
+    const email = document.getElementById('editClientEmail').value.trim();
+    const creditLimit = parseFloat(document.getElementById('editClientCreditLimit').value) || 0;
+    const creditEnabled = document.getElementById('editClientCreditToggle').checked;
+
+    if (!name) { showToast('El nombre es obligatorio', 'error'); return; }
+
+    client.name = name;
+    client.phone = phone;
+    client.email = email;
+    client.creditLimit = creditLimit;
+    client.creditEnabled = creditEnabled;
+    saveClients();
+    updateClientsDropdown();
+    hideModal('editClientModal');
+    reRenderCurrentPage();
+    showToast('Cliente actualizado', 'success');
+}
+
+function deleteClient(id) {
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    const pendingCreditSales = sales.filter(s => s.clientId === id && s.creditType === 'credito' && s.creditRemaining > 0);
+    let msg = `¿Estás seguro de que deseas eliminar a "${client.name}"?`;
+    if (pendingCreditSales.length > 0) {
+        msg = `⚠️ "${client.name}" tiene ${pendingCreditSales.length} venta(s) a crédito pendiente(s). ¿Eliminar de todas formas?`;
+    }
+    pendingDeleteId = id;
+    pendingDeleteType = 'client';
+    document.getElementById('confirmMessage').textContent = msg;
+    document.getElementById('confirmBtn').textContent = 'Eliminar Cliente';
+    showModal('confirmModal');
+}
+
+function toggleClientCredit(id, enabled) {
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    client.creditEnabled = enabled;
+    saveClients();
+    showToast(enabled ? 'Crédito activado para ' + client.name : 'Crédito desactivado para ' + client.name, 'success');
 }
 
 // ============ REPORTS ============
@@ -4784,11 +5104,33 @@ function exportAllData() {
 }
 
 // ============ USERS ============
+function canEditUser(target) {
+    if (!currentUser) return false;
+    if (currentUser.role === 'Super Admin') return true;
+    if (currentUser.role === 'Administrador' && target.role !== 'Super Admin') return true;
+    return false;
+}
+
+function canDeleteUser(target) {
+    if (!currentUser) return false;
+    if (currentUser.id === target.id) return false; // cannot delete self
+    if (currentUser.role === 'Super Admin') return true; // Super Admin can delete anyone except self
+    if (currentUser.role === 'Administrador') {
+        if (target.role === 'Super Admin') return false; // cannot delete Super Admin
+        if (target.role === 'Administrador') return 'requires_super_admin'; // needs approval
+        return true; // can delete Vendedor
+    }
+    return false;
+}
+
 function renderUsers() {
     const tbody = document.getElementById('usersTableBody');
     tbody.innerHTML = users.map(u => {
         const initials = u.name.split(' ').map(n => n[0]).join('').substring(0, 2);
         const roleIcons = { 'Vendedor': '🛒', 'Administrador': '👑', 'Super Admin': '🔰' };
+        const canEdit = canEditUser(u);
+        const delPerm = canDeleteUser(u);
+        const showDelete = delPerm === true || delPerm === 'requires_super_admin';
         return `
             <tr>
                 <td>
@@ -4805,7 +5147,8 @@ function renderUsers() {
                 <td style="color:var(--gray);">${u.lastAccess || 'N/A'}</td>
                 <td>
                     <div class="actions-cell">
-                        <button class="action-btn delete" onclick="deleteUser(${u.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                        ${canEdit ? `<button class="action-btn edit" onclick="editUser(${u.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
+                        ${showDelete ? `<button class="action-btn delete" onclick="deleteUser(${u.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
                     </div>
                 </td>
             </tr>
@@ -4820,6 +5163,10 @@ function saveUser() {
     const role = document.querySelector('input[name="userRole"]:checked').value;
 
     if (!name || !email || !pass) { showToast('Completa todos los campos', 'error'); return; }
+    if (role === 'Super Admin' && (!currentUser || currentUser.role !== 'Super Admin')) {
+        showToast('Solo un Super Admin puede crear usuarios con este rol', 'error');
+        return;
+    }
 
     users.push({ id: Date.now(), name, email, password: pass, role, status: 'active', lastAccess: '' });
     saveUsers();
@@ -4831,11 +5178,89 @@ function saveUser() {
     showToast('Usuario creado', 'success');
 }
 
+function editUser(id) {
+    if (!canEditUser(users.find(u => u.id === id))) {
+        showToast('No tienes permiso para editar este usuario', 'error');
+        return;
+    }
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+    document.getElementById('editUserName').value = user.name;
+    document.getElementById('editUserEmail').value = user.email;
+    document.getElementById('editUserPass').value = '';
+    const radio = document.querySelector(`input[name="editUserRole"][value="${user.role}"]`);
+    if (radio) radio.checked = true;
+    document.getElementById('editUserModal').dataset.userId = id;
+    showModal('editUserModal');
+}
+
+async function saveUserEdit() {
+    const id = parseInt(document.getElementById('editUserModal').dataset.userId);
+    const user = users.find(u => u.id === id);
+    if (!user) { showToast('Usuario no encontrado', 'error'); return; }
+    const name = document.getElementById('editUserName').value.trim();
+    const email = document.getElementById('editUserEmail').value.trim();
+    const pass = document.getElementById('editUserPass').value.trim();
+    const role = document.querySelector('input[name="editUserRole"]:checked').value;
+
+    if (!name || !email) { showToast('Nombre y correo son obligatorios', 'error'); return; }
+
+    // Permission check: only Super Admin can set Super Admin role
+    if (role === 'Super Admin' && currentUser.role !== 'Super Admin') {
+        showToast('Solo un Super Admin puede asignar el rol de Super Admin', 'error');
+        return;
+    }
+    // Cannot change own role or another Super Admin's role if not Super Admin
+    if (currentUser.role !== 'Super Admin' && (user.role === 'Super Admin' || role === 'Super Admin')) {
+        showToast('No tienes permiso para modificar roles de Super Admin', 'error');
+        return;
+    }
+
+    user.name = name;
+    user.email = email;
+    user.role = role;
+    if (pass) {
+        const salt = await generateSalt(16);
+        const iterations = 100000;
+        user.passwordHash = await hashPassword(pass, salt, iterations);
+        user.passwordSalt = salt;
+        user.passwordIterations = iterations;
+        delete user.password;
+    }
+    if (currentUser.id === user.id) {
+        currentUser = user;
+        updateSidebarUser(user);
+    }
+    saveUsers();
+    renderUsers();
+    hideModal('editUserModal');
+    showToast('Usuario actualizado', 'success');
+}
+
 function deleteUser(id) {
-    if (id === 1) { showToast('No puedes eliminar el administrador principal', 'error'); return; }
+    const target = users.find(u => u.id === id);
+    if (!target) return;
+    const perm = canDeleteUser(target);
+    if (perm === false) {
+        if (currentUser && currentUser.id === id) {
+            showToast('No puedes eliminarte a ti mismo', 'error');
+        } else {
+            showToast('No tienes permiso para eliminar este usuario', 'error');
+        }
+        return;
+    }
+    if (perm === 'requires_super_admin') {
+        pendingDeleteId = id;
+        pendingDeleteType = 'user';
+        document.getElementById('superAuthEmail').value = '';
+        document.getElementById('superAuthPass').value = '';
+        showModal('superAdminAuthModal');
+        return;
+    }
     pendingDeleteId = id;
     pendingDeleteType = 'user';
     document.getElementById('confirmMessage').textContent = '¿Estás seguro de que deseas eliminar este usuario?';
+    document.getElementById('confirmBtn').textContent = 'Eliminar';
     showModal('confirmModal');
 }
 
