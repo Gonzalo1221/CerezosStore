@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/CereosSneakers.html" }
+    { "source": "/(.*)", "destination": "/CerezosSneakers.html" }
   ],
   "headers": [
     {
