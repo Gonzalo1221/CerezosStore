@@ -79,9 +79,11 @@ CREATE TABLE sales (
 CREATE TABLE credit_payments (
   id BIGINT PRIMARY KEY,
   sale_id BIGINT REFERENCES sales(id),
+  ticket TEXT,
   amount NUMERIC,
   date TIMESTAMPTZ,
-  type TEXT
+  pay_method TEXT,
+  notes TEXT
 );
 
 -- Brands
@@ -131,5 +133,9 @@ CREATE TABLE settings (
   credit_days INT DEFAULT 30
 );
 
--- Migration for existing databases: add credit_enabled column
+-- Migrations for existing databases:
 -- ALTER TABLE clients ADD COLUMN IF NOT EXISTS credit_enabled BOOLEAN DEFAULT TRUE;
+-- ALTER TABLE credit_payments ADD COLUMN IF NOT EXISTS ticket TEXT;
+-- ALTER TABLE credit_payments ADD COLUMN IF NOT EXISTS pay_method TEXT;
+-- ALTER TABLE credit_payments ADD COLUMN IF NOT EXISTS notes TEXT;
+-- ALTER TABLE credit_payments DROP COLUMN IF EXISTS type;
