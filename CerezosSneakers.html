@@ -2259,17 +2259,24 @@ function getApiToken() { return sessionStorage.getItem('cs_api_token'); }
 function setApiToken(t) { sessionStorage.setItem('cs_api_token', t); }
 function clearApiToken() { sessionStorage.removeItem('cs_api_token'); }
 
-async function apiPost(path, body) {
+async function apiPost(path, body, timeoutMs = 15000) {
     const token = getApiToken();
-    const res = await fetch(path, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: body ? JSON.stringify(body) : undefined
-    });
-    return res.json();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(path, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: body ? JSON.stringify(body) : undefined,
+            signal: controller.signal
+        });
+        return res.json();
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 async function apiQuery(table, opts = {}) {
@@ -2533,9 +2540,13 @@ async function checkSessionOnLoad() {
     const token = getApiToken();
     if (!token) return false;
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
         const res = await fetch('/api/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}` },
+            signal: controller.signal
         });
+        clearTimeout(timeout);
         const data = await res.json();
         if (data.user) {
             currentUser = data.user;
@@ -2562,11 +2573,15 @@ async function handleLogin() {
     await new Promise(r => setTimeout(r, 50));
 
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pass })
+            body: JSON.stringify({ email, password: pass }),
+            signal: controller.signal
         });
+        clearTimeout(timeout);
         const data = await res.json();
 
         if (data.token && data.user) {
@@ -2764,7 +2779,6 @@ function renderDashboard() {
     }
 
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const now = new Date();
     const dayOfWeek = now.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(now);
@@ -5365,7 +5379,18 @@ function hideLoader() {
 
 // ============ INIT ============
 (async function() {
+    // Safety timeout: force-hide loader after 30s even if API hangs
+    const safetyTimer = setTimeout(() => {
+        hideLoader();
+        document.getElementById('appLayout')?.classList.remove('active');
+        const lp = document.getElementById('loginPage');
+        if (lp) lp.style.display = 'flex';
+        const errEl = document.getElementById('loginError');
+        if (errEl) { errEl.textContent = 'Tiempo de espera agotado. Verifica tu conexión e inicia sesión.'; errEl.classList.add('show'); }
+    }, 30000);
+
     const sessionOk = await checkSessionOnLoad();
+    clearTimeout(safetyTimer);
     if (!sessionOk) {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('appLayout').classList.remove('active');
