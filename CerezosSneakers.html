@@ -2744,7 +2744,9 @@ function recalcClientCredits() {
 // ============ DASHBOARD ============
 function renderDashboard() {
     document.getElementById('statProducts').textContent = products.length;
-    const monthSales = sales.filter(s => s.date.startsWith('2026-05'));
+    const now = new Date();
+    const monthPrefix = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const monthSales = sales.filter(s => s.date && s.date.startsWith(monthPrefix));
     const totalRevenue = monthSales.reduce((sum, s) => sum + s.total, 0);
     document.getElementById('statSales').textContent = '$' + totalRevenue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
     document.getElementById('statOrders').textContent = monthSales.length;
@@ -2762,7 +2764,27 @@ function renderDashboard() {
     }
 
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const values = [4200, 5800, 3100, 7200, 6500, 8900, 5400];
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    const weekDates = days.map((_, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    });
+    const values = weekDates.map(dateStr => {
+        const daySales = sales.filter(s => {
+            const sDate = s.date ? s.date.slice(0, 10) : '';
+            return sDate === dateStr;
+        });
+        return daySales.reduce((sum, s) => sum + s.total, 0);
+    });
     const maxVal = Math.max(...values);
     const chartEl = document.getElementById('weeklyChart');
     chartEl.innerHTML = days.map((d, i) => `
