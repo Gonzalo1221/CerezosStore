@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cerezos Sneaker GLZ - Gestión de Inventarios y Ventas</title>
+    <title>Cerezos Store GLZ - Gestión de Inventarios y Ventas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="assets/logo.png" type="image/png">
@@ -885,7 +885,7 @@
         </div>
         <div class="loader-texts">
             <div class="loader-text">Cargando...</div>
-            <div class="loader-brand">CEREZOS SNEAKER</div>
+            <div class="loader-brand">CEREZOS STORE</div>
         </div>
     </div>
 </div>
@@ -901,17 +901,17 @@
         <div class="login-error" id="loginError">Credenciales incorrectas</div>
         <div class="form-group">
             <label>Correo electrónico</label>
-            <input type="email" class="form-input" id="loginEmail" placeholder="Ingresa tu correo electrónico" value="admin@cerezos.com">
+            <input type="email" class="form-input" id="loginEmail" placeholder="Ingresa tu correo electrónico">
         </div>
         <div class="form-group">
             <label>Contraseña</label>
-            <input type="password" class="form-input" id="loginPass" placeholder="Ingresa tu contraseña" value="admin123">
+            <input type="password" class="form-input" id="loginPass" placeholder="Ingresa tu contraseña">
         </div>
         <button class="btn btn-primary" onclick="handleLogin()">
             <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
         </button>
         <div class="login-footer">
-            <span id="footerBusinessName">Cerezos Sneaker GLZ</span> © 2026 · Todos los derechos reservados
+            <span id="footerBusinessName">Cerezos Store GLZ</span> © 2026 · Todos los derechos reservados
         </div>
     </div>
 </div>
@@ -925,7 +925,7 @@
                 <img src="assets/logo.png" alt="Cerezos Sneaker" style="object-fit:contain;border-radius:8px;">
             </div>
             <div class="sidebar-brand">
-                <h2>CEREZOS SNEAKER</h2>
+                <h2>CEREZOS STORE</h2>
                 <small>GLZ</small>
             </div>
         </div>
@@ -1455,7 +1455,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nombre del Negocio</label>
-                            <input type="text" class="form-input" id="settingsBusinessName" value="Cerezos Sneaker GLZ">
+                            <input type="text" class="form-input" id="settingsBusinessName" value="Cerezos Store GLZ">
                         </div>
                         <div class="form-group">
                             <label>Teléfono</label>
@@ -1469,7 +1469,7 @@
                         </div>
                         <div class="form-group">
                             <label>RFC</label>
-                            <input type="text" class="form-input" id="settingsRfc" value="CSG260101ABC">
+                            <input type="text" class="form-input" id="settingsRfc" value="CST260101ABC">
                         </div>
                     </div>
                     <button class="btn btn-primary" style="width:auto;margin-top:10px;${can('edit','settings') ? '' : 'display:none;'}" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
@@ -2257,10 +2257,10 @@ let minStock = 5;
 let autoTicket = 'yes';
 let defaultInterest = 20;
 let fixedCost = 0;
-let businessName = 'Cerezos Sneaker GLZ';
+let businessName = 'Cerezos Store GLZ';
 let businessPhone = '+52 555 123 4567';
 let businessAddress = 'Av. Principal #123, Col. Centro';
-let businessRfc = 'CSG260101ABC';
+let businessRfc = 'CST260101ABC';
 let creditLimit = 10000;
 let creditDays = 30;
 

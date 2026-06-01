@@ -52,5 +52,5 @@ INSERT INTO sales (id, ticket, date, client, client_id, items, subtotal, tax, to
 
 -- Settings (default row, id=1 is always the single settings row)
 INSERT INTO settings (id, iva_rate, currency, min_stock, auto_ticket, default_interest, fixed_cost, business_name, business_phone, business_address, business_rfc, credit_limit, credit_days) VALUES
-(1, 16, '$', 5, 'yes', 20, 0, 'Cerezos Sneaker GLZ', '+52 555 123 4567', 'Av. Principal #123, Col. Centro', 'CSG260101ABC', 10000, 30)
+(1, 16, '$', 5, 'yes', 20, 0, 'Cerezos Store GLZ', '+52 555 123 4567', 'Av. Principal #123, Col. Centro', 'CST260101ABC', 10000, 30)
 ON CONFLICT (id) DO NOTHING;

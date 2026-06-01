@@ -125,10 +125,10 @@ CREATE TABLE settings (
   auto_ticket TEXT DEFAULT 'yes',
   default_interest NUMERIC DEFAULT 20,
   fixed_cost NUMERIC DEFAULT 0,
-  business_name TEXT DEFAULT 'Cerezos Sneaker GLZ',
+  business_name TEXT DEFAULT 'Cerezos Store GLZ',
   business_phone TEXT DEFAULT '+52 555 123 4567',
   business_address TEXT DEFAULT 'Av. Principal #123, Col. Centro',
-  business_rfc TEXT DEFAULT 'CSG260101ABC',
+  business_rfc TEXT DEFAULT 'CST260101ABC',
   credit_limit NUMERIC DEFAULT 10000,
   credit_days INT DEFAULT 30
 );
