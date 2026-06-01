@@ -19,9 +19,9 @@ const PERMISSIONS = {
     clients:          ['read', 'create', 'edit', 'delete'],
     quotes:           ['read', 'create', 'edit', 'delete'],
     settings:         ['read'],
-    credit_payments:  ['read', 'create'],
-    brands:           ['read', 'create', 'edit'],
-    categories:       ['read', 'create', 'edit']
+    credit_payments:  ['read', 'create', 'edit', 'delete'],
+    brands:           ['read', 'create', 'edit', 'delete'],
+    categories:       ['read', 'create', 'edit', 'delete']
   },
   'Vendedor': {
     users:            ['read'],
