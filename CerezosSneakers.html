@@ -1898,7 +1898,7 @@
                 <label>Límite de Crédito ($) <span style="font-size:11px;color:var(--gray-light);font-weight:400;">(0 = Sin límite)</span></label>
                 <input type="number" class="form-input" id="editClientCreditLimit" placeholder="0 = Sin límite">
             </div>
-            <div class="form-group">
+            <div class="form-group" id="editClientCreditGroup" style="${can('edit','settings') ? '' : 'display:none;'}">
                 <label>Crédito Activo</label>
                 <div style="display:flex;align-items:center;gap:12px;">
                     <label class="switch" style="width:48px;height:26px;">
@@ -4943,7 +4943,7 @@ function saveClientEdit() {
     client.phone = phone;
     client.email = email;
     client.creditLimit = creditLimit;
-    client.creditEnabled = creditEnabled;
+    if (can('edit', 'settings')) client.creditEnabled = creditEnabled;
     saveClients();
     updateClientsDropdown();
     hideModal('editClientModal');
