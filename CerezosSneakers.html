@@ -3307,7 +3307,7 @@ function renderPosProducts() {
         const allOut = g.totalStock === 0;
         const availSizes = g.sizes.filter(s => s.stock > 0).map(s => s.size).join(', ');
         return `
-        <div class="pos-product-card ${allOut ? 'pos-out-of-stock' : ''}" onclick="${allOut ? '' : `showSizePicker('${g.name.replace(/'/g, "\\'")}', ${g.price}, '${g.category}')`}" style="${allOut ? 'opacity:0.55;cursor:default;' : ''}">
+        <div class="pos-product-card ${allOut ? 'pos-out-of-stock' : ''}" onclick="${allOut ? '' : (g.sizes.length === 1 && g.sizes[0].stock > 0 ? `addToCart(${g.sizes[0].id})` : `showSizePicker('${g.name.replace(/'/g, "\\'")}', ${g.price}, '${g.category}')`)}" style="${allOut ? 'opacity:0.55;cursor:default;' : ''}">
             ${allOut ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
             <div class="pos-thumb">${getCategoryIcon(g.category)}</div>
             <h4>${g.name}</h4>
