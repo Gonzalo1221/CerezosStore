@@ -1898,7 +1898,7 @@
                 <label>Límite de Crédito ($) <span style="font-size:11px;color:var(--gray-light);font-weight:400;">(0 = Sin límite)</span></label>
                 <input type="number" class="form-input" id="editClientCreditLimit" placeholder="0 = Sin límite">
             </div>
-            <div class="form-group" id="editClientCreditGroup" style="${can('edit','settings') ? '' : 'display:none;'}">
+            <div class="form-group" id="editClientCreditGroup">
                 <label>Crédito Activo</label>
                 <div style="display:flex;align-items:center;gap:12px;">
                     <label class="switch" style="width:48px;height:26px;">
@@ -4913,6 +4913,7 @@ function renderClients() {
 function editClient(id) {
     const client = clients.find(c => c.id === id);
     if (!client) return;
+    document.getElementById('editClientCreditGroup').style.display = can('edit','settings') ? '' : 'none';
     document.getElementById('editClientName').value = client.name;
     document.getElementById('editClientPhone').value = client.phone || '';
     document.getElementById('editClientEmail').value = client.email || '';
