@@ -891,12 +891,12 @@
 </div>
 
 <!-- LOGIN PAGE -->
-<div class="login-container" id="loginPage">
+<div class="login-container" id="loginPage" onkeydown="if(event.key==='Enter')handleLogin()">
     <div class="login-card">
         <div class="login-logo">
             <img src="assets/logo.png" alt="Cerezos Sneaker Logo" style="width: 151px; height: 151px; object-fit: contain;">
         </div>
-        <div class="login-title"><span>CEREZOS</span> SNEAKER</div>
+        <div class="login-title"><span>CEREZOS</span> STORE</div>
         <div class="login-subtitle">Sistema de Gestión de Inventarios y Ventas</div>
         <div class="login-error" id="loginError">Credenciales incorrectas</div>
         <div class="form-group">
