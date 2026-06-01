@@ -1334,7 +1334,7 @@
                                     <th>Teléfono</th>
                                     <th>Email</th>
                                     <th>Límite Crédito</th>
-                                    ${can('edit','settings') ? '<th>Crédito Activo</th>' : ''}
+                                    <th id="creditActiveHeader">Crédito Activo</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -4875,6 +4875,8 @@ function exportCredits() {
 function renderClients() {
     const search = (document.getElementById('clientSearch')?.value || '').toLowerCase();
     const filtered = clients.filter(c => c.name.toLowerCase().includes(search) || (c.phone || '').includes(search) || (c.email || '').includes(search));
+    const showCredit = can('edit','settings');
+    document.getElementById('creditActiveHeader').style.display = showCredit ? '' : 'none';
     const tbody = document.getElementById('clientsTableBody');
     tbody.innerHTML = filtered.map(c => {
         const isUnlimited = c.creditLimit === 0;
@@ -4907,7 +4909,7 @@ function renderClients() {
                 </td>
             </tr>
         `;
-    }).join('') || '<tr><td colspan="6"><div class="empty-state"><i class="bi bi-people"></i><h3>No hay clientes registrados</h3><p>Agrega tu primer cliente para empezar</p></div></td></tr>';
+    }).join('') || '<tr><td colspan="' + (showCredit ? 6 : 5) + '"><div class="empty-state"><i class="bi bi-people"></i><h3>No hay clientes registrados</h3><p>Agrega tu primer cliente para empezar</p></div></td></tr>';
 }
 
 function editClient(id) {
