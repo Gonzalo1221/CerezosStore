@@ -3320,7 +3320,7 @@ function renderPosProducts() {
         const hasAvail = g.totalStock > 0 || canSellWithoutStock;
         return `
         <div class="pos-product-card ${allOut ? 'pos-out-of-stock' : ''}" onclick="${allOut ? '' : (g.sizes.length === 1 && (g.sizes[0].stock > 0 || g.sizes[0].sellWithoutStock) ? `addToCart(${g.sizes[0].id})` : `showSizePicker('${g.name.replace(/'/g, "\\'")}', ${g.price}, '${g.category}')`)}" style="${allOut ? 'opacity:0.55;cursor:default;' : ''}">
-            ${allOut ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
+            ${g.totalStock === 0 ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
             <div class="pos-thumb">${getCategoryIcon(g.category)}</div>
             <h4>${g.name}</h4>
             <div class="pos-price">$${g.price.toLocaleString()}</div>
