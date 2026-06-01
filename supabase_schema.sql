@@ -36,6 +36,7 @@ CREATE TABLE products (
   stock INT,
   min_stock INT,
   description TEXT,
+  sell_without_stock BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -139,3 +140,4 @@ CREATE TABLE settings (
 -- ALTER TABLE credit_payments ADD COLUMN IF NOT EXISTS pay_method TEXT;
 -- ALTER TABLE credit_payments ADD COLUMN IF NOT EXISTS notes TEXT;
 -- ALTER TABLE credit_payments DROP COLUMN IF EXISTS type;
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS sell_without_stock BOOLEAN DEFAULT FALSE;

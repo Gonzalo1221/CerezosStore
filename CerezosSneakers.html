@@ -1654,6 +1654,12 @@
                 <label>Descripción (opcional)</label>
                 <textarea class="form-input" id="prodDesc" placeholder="Descripción del producto..."></textarea>
             </div>
+            <div class="form-group" style="margin-top:4px;">
+                <label class="checkbox-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="prodSellWithoutStock">
+                    <span style="font-size:13px;">Permitir vender sin stock</span>
+                </label>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="hideModal('productModal')">Cancelar</button>
@@ -2949,6 +2955,7 @@ function saveProduct() {
     const price = parseFloat(document.getElementById('prodPrice').value) || 0;
     const minStock = parseInt(document.getElementById('prodMinStock').value) || 5;
     const desc = document.getElementById('prodDesc').value.trim();
+    const sellWithoutStock = document.getElementById('prodSellWithoutStock').checked;
     const sizes = getSizeRows();
 
     if (!name) { showToast('Ingresa el nombre del producto', 'error'); return; }
@@ -2975,6 +2982,7 @@ function saveProduct() {
             cost, price,
             stock: s.stock,
             minStock,
+            sellWithoutStock,
             desc
         });
     });
@@ -3002,6 +3010,7 @@ function editProduct(id) {
     document.getElementById('prodPrice').value = p.price;
     document.getElementById('prodMinStock').value = p.minStock;
     document.getElementById('prodDesc').value = p.desc || '';
+    document.getElementById('prodSellWithoutStock').checked = p.sellWithoutStock || false;
     document.getElementById('productModalTitle').textContent = '✏️ Editar Producto';
     
     // Load all size rows
@@ -3215,6 +3224,7 @@ function clearProductForm() {
     document.getElementById('prodPrice').value = '';
     document.getElementById('prodMinStock').value = '5';
     document.getElementById('prodDesc').value = '';
+    document.getElementById('prodSellWithoutStock').checked = false;
     document.getElementById('productModalTitle').textContent = '👟 Nuevo Producto';
     // Reset sizes container to one empty row
     document.getElementById('sizesContainer').innerHTML = `
@@ -3304,16 +3314,18 @@ function renderPosProducts() {
 
     const grid = document.getElementById('posProductsGrid');
     grid.innerHTML = Object.values(groups).map(g => {
-        const allOut = g.totalStock === 0;
-        const availSizes = g.sizes.filter(s => s.stock > 0).map(s => s.size).join(', ');
+        const canSellWithoutStock = g.sizes.some(s => s.sellWithoutStock);
+        const allOut = g.totalStock === 0 && !canSellWithoutStock;
+        const availSizes = g.sizes.filter(s => s.stock > 0 || s.sellWithoutStock).map(s => s.size).join(', ');
+        const hasAvail = g.totalStock > 0 || canSellWithoutStock;
         return `
-        <div class="pos-product-card ${allOut ? 'pos-out-of-stock' : ''}" onclick="${allOut ? '' : (g.sizes.length === 1 && g.sizes[0].stock > 0 ? `addToCart(${g.sizes[0].id})` : `showSizePicker('${g.name.replace(/'/g, "\\'")}', ${g.price}, '${g.category}')`)}" style="${allOut ? 'opacity:0.55;cursor:default;' : ''}">
+        <div class="pos-product-card ${allOut ? 'pos-out-of-stock' : ''}" onclick="${allOut ? '' : (g.sizes.length === 1 && (g.sizes[0].stock > 0 || g.sizes[0].sellWithoutStock) ? `addToCart(${g.sizes[0].id})` : `showSizePicker('${g.name.replace(/'/g, "\\'")}', ${g.price}, '${g.category}')`)}" style="${allOut ? 'opacity:0.55;cursor:default;' : ''}">
             ${allOut ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
             <div class="pos-thumb">${getCategoryIcon(g.category)}</div>
             <h4>${g.name}</h4>
             <div class="pos-price">$${g.price.toLocaleString()}</div>
             <div class="pos-sku">${g.brand} ${g.sizes.length > 0 ? '· Tallas: ' + g.sizes.map(s => s.size).join(', ') : ''}</div>
-            ${g.totalStock > 0 ? `<div class="pos-sku" style="color:var(--success);margin-top:2px;">${g.sizes.filter(s => s.stock > 0).length} tallas disponibles</div>` : ''}
+            ${hasAvail ? `<div class="pos-sku" style="color:var(--success);margin-top:2px;">${g.sizes.filter(s => s.stock > 0 || s.sellWithoutStock).length} tallas disponibles</div>` : ''}
         </div>`;
     }).join('') || '<div class="empty-state" style="grid-column:1/-1;"><i class="bi bi-search"></i><h3>No se encontraron productos</h3></div>';
     
@@ -3339,7 +3351,7 @@ function showSizePicker(name, price, category) {
     document.getElementById('sizePickerTitle').textContent = name;
     const grid = document.getElementById('sizePickerGrid');
     grid.innerHTML = groupProducts.map(p => {
-        const out = p.stock === 0;
+        const out = p.stock === 0 && !p.sellWithoutStock;
         return `
             <div class="pos-product-card ${out ? 'pos-out-of-stock' : ''}" onclick="${out ? '' : `selectPickerSize(${p.id})`}" id="pickerSize-${p.id}" style="padding:12px 8px;cursor:${out ? 'default' : 'pointer'};${out ? 'opacity:0.55;' : ''}border:2px solid transparent;">
                 ${out ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
@@ -3365,7 +3377,7 @@ function selectPickerSize(id) {
 function sizePickerQty(delta) {
     _pickerQty = Math.max(1, _pickerQty + delta);
     const p = _pickerSizes.find(s => s.id === _pickerSelectedSize);
-    if (p) _pickerQty = Math.min(_pickerQty, p.stock);
+    if (p && !p.sellWithoutStock) _pickerQty = Math.min(_pickerQty, p.stock);
     document.getElementById('sizePickerQtyVal').textContent = _pickerQty;
 }
 
@@ -3376,7 +3388,7 @@ function sizePickerAdd() {
     for (let i = 0; i < _pickerQty; i++) {
         const existing = cart.find(c => c.productId === p.id);
         if (existing) {
-            if (existing.qty >= p.stock) break;
+            if (!p.sellWithoutStock && existing.qty >= p.stock) break;
             existing.qty++;
         } else {
             cart.push({ productId: p.id, name: p.name, price: p.price, sku: p.sku, qty: 1, icon: getCategoryIcon(p.category), size: p.size });
@@ -3390,11 +3402,11 @@ function sizePickerAdd() {
 
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
-    if (!product || product.stock === 0) return;
+    if (!product || (product.stock === 0 && !product.sellWithoutStock)) return;
     
     const existing = cart.find(c => c.productId === productId);
     if (existing) {
-        if (existing.qty >= product.stock) { showToast('No hay suficiente stock', 'error'); return; }
+        if (!product.sellWithoutStock && existing.qty >= product.stock) { showToast('No hay suficiente stock', 'error'); return; }
         existing.qty++;
     } else {
         cart.push({ productId, name: product.name, price: product.price, sku: product.sku, qty: 1, icon: getCategoryIcon(product.category) });
@@ -3409,7 +3421,7 @@ function updateCartQty(productId, delta) {
     const product = products.find(p => p.id === productId);
     item.qty += delta;
     if (item.qty <= 0) { cart = cart.filter(c => c.productId !== productId); }
-    else if (product && item.qty > product.stock) { item.qty = product.stock; showToast('Stock máximo alcanzado', 'error'); }
+    else if (product && !product.sellWithoutStock && item.qty > product.stock) { item.qty = product.stock; showToast('Stock máximo alcanzado', 'error'); }
     renderCart();
 }
 
@@ -3976,8 +3988,8 @@ function convertQuoteToSale(quoteId) {
     cart = [];
     (quote.items || []).forEach(item => {
         const product = products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01);
-        if (product && product.stock > 0) {
-            cart.push({ productId: product.id, name: item.name, price: item.price, sku: product.sku, qty: Math.min(item.qty, product.stock), icon: getCategoryIcon(product.category) });
+        if (product && (product.stock > 0 || product.sellWithoutStock)) {
+            cart.push({ productId: product.id, name: item.name, price: item.price, sku: product.sku, qty: Math.min(item.qty, product.sellWithoutStock ? item.qty : product.stock), icon: getCategoryIcon(product.category) });
         }
     });
     renderCart();
