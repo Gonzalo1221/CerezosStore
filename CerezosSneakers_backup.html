@@ -1527,12 +1527,23 @@
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h3><i class="bi bi-shield-check" style="color:var(--primary);"></i> Backend API</h3></div>
+                <div class="card-header"><h3><i class="bi bi-cloud" style="color:var(--primary);"></i> Supabase</h3></div>
                 <div class="card-body">
-                    <p style="color:var(--gray-light);font-size:14px;margin:0;">
-                        <i class="bi bi-check-circle-fill" style="color:#22c55e;"></i> 
-                        Todo el tráfico de datos pasa por el backend. Los permisos y roles se validan del lado del servidor.
-                    </p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>URL de Supabase</label>
+                            <input type="text" class="form-input" id="supabaseUrl" value="https://ptehlkoovecphilchzcj.supabase.co" placeholder="https://xxxx.supabase.co">
+                        </div>
+                        <div class="form-group">
+                            <label>Anon Key</label>
+                            <input type="text" class="form-input" id="supabaseKey" value="sb_publishable_e4l7KhVm536omWR-s_72Dw_CLeSNuZu" placeholder="eyJ...">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                        <button class="btn btn-secondary btn-sm" onclick="testSupabaseConnection()" id="testConnBtn"><i class="bi bi-plug"></i> Probar Conexión</button>
+                        <button class="btn btn-info btn-sm" onclick="loadFromSupabase()" id="loadFromSbBtn"><i class="bi bi-cloud-download"></i> Recargar desde Supabase</button>
+                    </div>
+                    <div id="supabaseStatus" style="margin-top:12px;padding:12px;border-radius:10px;font-size:13px;display:none;"></div>
                 </div>
             </div>
         </div>
@@ -2171,7 +2182,7 @@
 <!-- PDF generation libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- Backend API handles all Supabase communication -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <script>
 // ============ DATA STORE ============
@@ -2213,41 +2224,146 @@ function mapKeys(obj, converter) {
     return result;
 }
 
-// ============ API HELPERS (backend proxy) ============
-function getApiToken() { return sessionStorage.getItem('cs_api_token'); }
-function setApiToken(t) { sessionStorage.setItem('cs_api_token', t); }
-function clearApiToken() { sessionStorage.removeItem('cs_api_token'); }
+// ============ SUPABASE CLIENT ============
+let sbClient = null;
+let supabaseConnected = false;
 
-async function apiPost(path, body) {
-    const token = getApiToken();
-    const res = await fetch(path, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: body ? JSON.stringify(body) : undefined
-    });
-    return res.json();
+function getSupabaseConfig() {
+    return {
+        url: document.getElementById('supabaseUrl')?.value || 'https://ptehlkoovecphilchzcj.supabase.co',
+        key: document.getElementById('supabaseKey')?.value || 'sb_publishable_e4l7KhVm536omWR-s_72Dw_CLeSNuZu'
+    };
 }
 
-async function apiQuery(table, opts = {}) {
-    const result = await apiPost('/api/query', { table, ...opts });
-    if (result.error) throw new Error(result.error);
-    return result.data;
+function initSupabase() {
+    if (sbClient) return true;
+    try {
+        const { url, key } = getSupabaseConfig();
+        const lib = window.__SUPABASE_UMD__ || window.supabase;
+        if (!lib || !lib.createClient) {
+            showToast('Librería Supabase no cargada', 'error');
+            return false;
+        }
+        sbClient = lib.createClient(url, key);
+        supabaseConnected = true;
+        return true;
+    } catch (e) {
+        console.error('Supabase init error:', e);
+        supabaseConnected = false;
+        return false;
+    }
 }
 
-async function apiUpsert(table, data) {
-    const result = await apiPost('/api/upsert', { table, data });
-    if (result.error) throw new Error(result.error);
-    return result.success;
+async function testSupabaseConnection() {
+    const btn = document.getElementById('testConnBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Probando...';
+    const status = document.getElementById('supabaseStatus'); status.style.display = 'block';
+    
+    try {
+        if (!initSupabase()) throw new Error('No se pudo inicializar Supabase');
+        const { error } = await sbClient.from('settings').select('id').limit(1);
+        if (error && error.message && error.message.includes('relation') && error.message.includes('does not exist')) {
+            status.style.cssText = 'margin-top:12px;padding:12px;border-radius:10px;font-size:13px;display:block;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.25);color:#a16207;';
+            status.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Conectado a Supabase pero faltan tablas. Crea las tablas en SQL Editor.';
+            showToast('Conectado a Supabase — faltan tablas', 'warning');
+            supabaseConnected = true;
+            return;
+        }
+        if (error) throw error;
+        status.style.cssText = 'margin-top:12px;padding:12px;border-radius:10px;font-size:13px;display:block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:#15803d;';
+        status.innerHTML = '<i class="bi bi-check-circle-fill"></i> Conexión exitosa · Supabase en línea';
+        showToast('Conexión exitosa a Supabase', 'success');
+        supabaseConnected = true;
+    } catch (e) {
+        status.style.cssText = 'margin-top:12px;padding:12px;border-radius:10px;font-size:13px;display:block;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#b91c1c;';
+        status.innerHTML = `<i class="bi bi-x-circle-fill"></i> Error: ${e.message || 'No se pudo conectar'}. La app requiere conexión a Supabase.`;
+        supabaseConnected = false;
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-plug"></i> Probar Conexión';
+    }
 }
 
-async function apiDelete(table, id, opts = {}) {
-    const body = opts.column ? { table, column: opts.column, values: opts.values } : { table, id };
-    const result = await apiPost('/api/delete', body);
-    if (result.error) throw new Error(result.error);
-    return result.success;
+// ============ DB SERVICE (auto-converts camelCase ↔ snake_case) ============
+const DB = {
+    async query(table) {
+        if (!supabaseConnected || !sbClient) { return { data: null, local: true }; }
+        try {
+            const { data, error } = await sbClient.from(table).select('*').order('id', { ascending: true });
+            if (error) throw error;
+            return { data: data ? data.map(d => mapKeys(d, snakeToCamel)) : data, local: false };
+        } catch (e) {
+            console.warn(`Supabase query error on ${table}:`, e.message);
+            return { data: null, local: true };
+        }
+    },
+    async upsert(table, records) {
+        if (!supabaseConnected || !sbClient) return false;
+        try {
+            const snakeData = mapKeys(records, camelToSnake);
+            const { error } = await sbClient.from(table).upsert(snakeData, { onConflict: 'id', ignoreDuplicates: false });
+            if (error) throw error;
+            return true;
+        } catch (e) {
+            console.warn(`Supabase upsert error on ${table}:`, e.message);
+            return false;
+        }
+    },
+    async delete(table, id) {
+        if (!supabaseConnected || !sbClient) return false;
+        try {
+            const { error } = await sbClient.from(table).delete().eq('id', id);
+            if (error) throw error;
+            return true;
+        } catch (e) {
+            console.warn(`Supabase delete error on ${table}:`, e.message);
+            return false;
+        }
+    },
+    async migrate(table, localData) {
+        if (!localData || localData.length === 0) { showToast(`No hay datos que migrar en ${table}`, 'info'); return false; }
+        if (!initSupabase()) { showToast('No se pudo conectar a Supabase', 'error'); return false; }
+        try {
+            const snakeData = mapKeys(localData, camelToSnake);
+            const { error } = await sbClient.from(table).upsert(snakeData, { onConflict: 'id', ignoreDuplicates: false });
+            if (error) throw error;
+            return true;
+        } catch (e) {
+            console.error(`Migration error on ${table}:`, e.message);
+            showToast(`Error migrando ${table}: ${e.message}`, 'error');
+            return false;
+        }
+    }
+};
+
+async function migrateToSupabase() {
+    if (!confirm('¿Migrar todos los datos locales a Supabase? Se sobrescribirán los datos existentes en la nube.')) return;
+    const btn = document.getElementById('migrateBtn'); btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Migrando...';
+    const tables = [
+        { name: 'users', data: users },
+        { name: 'products', data: products },
+        { name: 'clients', data: clients },
+        { name: 'sales', data: sales },
+        { name: 'credit_payments', data: creditPayments }
+    ];
+    let ok = 0, fail = 0;
+    for (const t of tables) {
+        const r = await DB.migrate(t.name, t.data);
+        if (r) ok++; else fail++;
+    }
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-upload"></i> Migrar Datos a Supabase';
+    if (fail === 0) showToast(`${ok} tablas migradas correctamente a Supabase`, 'success');
+    else showToast(`${ok} migradas, ${fail} fallaron`, 'error');
+}
+
+async function loadFromSupabase() {
+    const btn = document.getElementById('loadFromSbBtn'); btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cargando...';
+    if (!initSupabase()) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-download"></i> Cargar desde Supabase'; return; }
+    
+    await initSupabaseOnly();
+    
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-download"></i> Cargar desde Supabase';
+    showToast('Datos recargados desde Supabase', 'success');
+    location.reload();
 }
 
 // ============ SETTINGS ============
@@ -2355,23 +2471,42 @@ function saveSettings() {
     fixedCost = parseFloat(v('settingsFixedCost'));
     if (isNaN(fixedCost) || fixedCost < 0) fixedCost = 0;
     const settingsData = {id: 1, ivaRate, minStock, autoTicket, defaultInterest, fixedCost, businessName, businessPhone, businessAddress, businessRfc, creditLimit, creditDays};
-    apiUpsert('settings', settingsData).catch(e => console.warn('saveSettings:', e));
+    syncToSupabase('settings', [settingsData]);
     updateBusinessNameUI();
     reRenderCurrentPage();
-    showToast('Configuración guardada', 'success');
+    showToast(supabaseConnected ? 'Configuración guardada en la nube' : 'Configuración guardada (sin conexión a Supabase)', supabaseConnected ? 'success' : 'warning');
 }
 
 
 
-// ============ SAVE FUNCTIONS (via backend API) ============
-async function saveProducts() { try { await apiUpsert('products', products); } catch (e) { console.warn('saveProducts:', e); } }
-async function saveSales() { try { await apiUpsert('sales', sales); } catch (e) { console.warn('saveSales:', e); } }
-async function saveQuotes() { try { await apiUpsert('quotes', quotes); } catch (e) { console.warn('saveQuotes:', e); } }
+// ============ SAVE FUNCTIONS (Supabase only) ============
+function saveProducts() { syncToSupabase('products', products); }
+function saveSales() { syncToSupabase('sales', sales); }
+function saveQuotes() { syncToSupabase('quotes', quotes); }
 function loadQuotes(data) { quotes = (data || []).map(q => ({ ...q, items: q.items || [] })); }
-async function saveUsers() { try { await apiUpsert('users', users); } catch (e) { console.warn('saveUsers:', e); } }
-async function saveClients() { try { await apiUpsert('clients', clients); } catch (e) { console.warn('saveClients:', e); } }
-async function saveCreditPayments() { try { await apiUpsert('credit_payments', creditPayments); } catch (e) { console.warn('saveCreditPayments:', e); } }
-// ============ SECURITY HELPERS (password hashing for user management) ============
+function saveUsers() { syncToSupabase('users', users); }
+function saveClients() { syncToSupabase('clients', clients); }
+function saveCreditPayments() { syncToSupabase('credit_payments', creditPayments); }
+
+async function syncToSupabase(table, data) {
+    if (!supabaseConnected || !sbClient) return;
+    try {
+        const snakeData = mapKeys(data, camelToSnake);
+        await sbClient.from(table).upsert(snakeData, { onConflict: 'id', ignoreDuplicates: false });
+    } catch (e) {
+        console.warn(`Supabase sync error (${table}):`, e.message);
+    }
+}
+
+async function syncDeleteFromSupabase(table, id) {
+    if (!supabaseConnected || !sbClient) return;
+    try {
+        await sbClient.from(table).delete().eq('id', id);
+    } catch (e) {
+        console.warn(`Supabase delete error (${table}):`, e.message);
+    }
+}
+// ============ SECURITY HELPERS ============
 function arrayBufferToBase64(buffer) {
     let binary = '';
     const bytes = new Uint8Array(buffer);
@@ -2384,6 +2519,10 @@ function base64ToArrayBuffer(base64) {
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
     return bytes.buffer;
+}
+function randomBase64(len = 24) {
+    const arr = crypto.getRandomValues(new Uint8Array(len));
+    return arrayBufferToBase64(arr.buffer);
 }
 async function generateSalt(len = 16) {
     const salt = crypto.getRandomValues(new Uint8Array(len));
@@ -2402,8 +2541,40 @@ function constantTimeCompare(a, b) {
     for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
     return result === 0;
 }
+async function ensureHashedPasswords() {
+    let changed = false;
+    for (let u of users) {
+        if (u.password && !u.passwordHash) {
+            const salt = await generateSalt(16);
+            const iterations = 100000;
+            const hash = await hashPassword(u.password, salt, iterations);
+            u.passwordHash = hash;
+            u.passwordSalt = salt;
+            u.passwordIterations = iterations;
+            delete u.password;
+            changed = true;
+        }
+    }
+    if (changed) saveUsers();
+}
 
-// ============ SESSION & AUTH (JWT via backend) ============
+// ============ SESSION & AUTH ============
+function createSession(user) {
+    const token = randomBase64(24);
+    const session = { userId: user.id, token, expires: Date.now() + (2 * 60 * 60 * 1000) };
+    sessionStorage.setItem('cs_session', JSON.stringify(session));
+}
+function clearSession() { sessionStorage.removeItem('cs_session'); }
+function getSession() {
+    const s = sessionStorage.getItem('cs_session');
+    if (!s) return null;
+    try {
+        const obj = JSON.parse(s);
+        if (obj.expires && obj.expires > Date.now()) return obj;
+        sessionStorage.removeItem('cs_session');
+        return null;
+    } catch (e) { return null; }
+}
 function updateSidebarUser(user) {
     document.getElementById('sidebarUserName').textContent = user.name;
     document.getElementById('sidebarUserRole').textContent = user.role;
@@ -2411,26 +2582,20 @@ function updateSidebarUser(user) {
     document.getElementById('sidebarAvatar').textContent = initials;
 }
 
-async function checkSessionOnLoad() {
-    const token = getApiToken();
-    if (!token) return false;
-    try {
-        const res = await fetch('/api/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.user) {
-            currentUser = data.user;
-            await initSupabaseOnly();
+function checkSessionOnLoad() {
+    const sess = getSession();
+    if (sess) {
+        const user = users.find(u => u.id === sess.userId);
+        if (user) {
+            currentUser = user;
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appLayout').classList.add('active');
-            updateSidebarUser(data.user);
+            updateSidebarUser(user);
+            showToast(`Bienvenido de nuevo, ${user.name}`, 'success');
             initApp();
-            showToast(`Bienvenido de nuevo, ${data.user.name}`, 'success');
             return true;
         }
-    } catch (e) { /* token inválido */ }
-    clearApiToken();
+    }
     return false;
 }
 
@@ -2438,39 +2603,60 @@ async function checkSessionOnLoad() {
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPass').value;
-    document.getElementById('loginError').classList.remove('show');
-
-    try {
-        const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password: pass })
-        });
-        const data = await res.json();
-
-        if (data.token && data.user) {
-            setApiToken(data.token);
-            currentUser = data.user;
-            await initSupabaseOnly();
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('appLayout').classList.add('active');
-            updateSidebarUser(data.user);
-            showToast(`Bienvenido, ${data.user.name}`, 'success');
-            initApp();
-        } else {
-            document.getElementById('loginError').textContent = data.error || 'Credenciales incorrectas';
-            document.getElementById('loginError').classList.add('show');
-            setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
-        }
-    } catch (e) {
-        document.getElementById('loginError').textContent = 'Error de conexión con el servidor';
+    const attempts = JSON.parse(localStorage.getItem('cs_login_attempts') || '{}');
+    const rec = attempts[email] || { count: 0, lockedUntil: 0 };
+    if (rec.lockedUntil && rec.lockedUntil > Date.now()) {
+        document.getElementById('loginError').textContent = 'Cuenta bloqueada temporalmente. Intenta más tarde.';
         document.getElementById('loginError').classList.add('show');
         setTimeout(() => document.getElementById('loginError').classList.remove('show'), 4000);
+        return;
+    }
+    const user = users.find(u => u.email === email);
+    if (!user) {
+        rec.count = (rec.count || 0) + 1;
+        if (rec.count >= 5) rec.lockedUntil = Date.now() + (30 * 60 * 1000);
+        attempts[email] = rec;
+        localStorage.setItem('cs_login_attempts', JSON.stringify(attempts));
+        document.getElementById('loginError').classList.add('show');
+        setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
+        return;
+    }
+    if (!user.passwordHash || !user.passwordSalt) {
+        // Fallback migration: create hashed password now if plain password matches
+        if (user.password && user.password === pass) {
+            await ensureHashedPasswords();
+        } else {
+            rec.count = (rec.count || 0) + 1;
+            attempts[email] = rec;
+            localStorage.setItem('cs_login_attempts', JSON.stringify(attempts));
+            document.getElementById('loginError').classList.add('show');
+            setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
+            return;
+        }
+    }
+    const enteredHash = await hashPassword(pass, user.passwordSalt, user.passwordIterations || 100000);
+    if (constantTimeCompare(enteredHash, user.passwordHash)) {
+        attempts[email] = { count: 0, lockedUntil: 0 };
+        localStorage.setItem('cs_login_attempts', JSON.stringify(attempts));
+        currentUser = user;
+        createSession(user);
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('appLayout').classList.add('active');
+        updateSidebarUser(user);
+        showToast(`Bienvenido, ${user.name}`, 'success');
+        initApp();
+    } else {
+        rec.count = (rec.count || 0) + 1;
+        if (rec.count >= 5) rec.lockedUntil = Date.now() + (30 * 60 * 1000);
+        attempts[email] = rec;
+        localStorage.setItem('cs_login_attempts', JSON.stringify(attempts));
+        document.getElementById('loginError').classList.add('show');
+        setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
     }
 }
 
 function handleLogout() {
-    clearApiToken();
+    clearSession();
     currentUser = null;
     document.getElementById('appLayout').classList.remove('active');
     document.getElementById('loginPage').style.display = 'flex';
@@ -2529,28 +2715,16 @@ function showToast(msg, type = 'info') {
     setTimeout(() => toast.remove(), 3500);
 }
 
-// ============ INIT APP (carga datos desde backend API) ============
+// ============ INIT APP ============
 async function initSupabaseOnly() {
-    const tables = ['users','products','clients','sales','credit_payments','brands','categories','quotes'];
-    const map = { users, products, clients, sales, credit_payments: creditPayments, brands, categories, quotes };
-    
-    for (const table of tables) {
-        try {
-            const data = await apiQuery(table);
-            if (data && data.length > 0) {
-                const arr = map[table];
-                arr.length = 0;
-                data.forEach(d => arr.push(d));
-            }
-        } catch (e) { /* silent - will use empty arrays */ }
-    }
-    
-    // Cargar settings desde API
+    if (!initSupabase()) return;
     try {
-        const sData = await apiQuery('settings', { columns: '*' });
+        const { data: sData, error } = await sbClient.from('settings').select('*').limit(1);
+        if (error && error.message && error.message.includes('relation') && error.message.includes('does not exist')) return;
         if (sData && sData.length > 0) {
-            const s = sData[0];
+            const s = mapKeys(sData[0], snakeToCamel);
             ivaRate = s.ivaRate !== undefined ? s.ivaRate : 16;
+
             minStock = s.minStock !== undefined ? s.minStock : 5;
             autoTicket = s.autoTicket || 'yes';
             defaultInterest = s.defaultInterest !== undefined ? s.defaultInterest : 20;
@@ -2563,6 +2737,20 @@ async function initSupabaseOnly() {
             creditDays = s.creditDays !== undefined ? s.creditDays : 30;
         }
     } catch (e) { /* silent fail */ }
+    
+    const tables = ['users','products','clients','sales','credit_payments','brands','categories','quotes'];
+    const map = { users, products, clients, sales, credit_payments: creditPayments, brands, categories, quotes };
+    
+    for (const table of tables) {
+        try {
+            const { data, local } = await DB.query(table);
+            if (!local && data && data.length > 0) {
+                const arr = map[table];
+                arr.length = 0;
+                data.forEach(d => arr.push(d));
+            }
+        } catch (e) { /* silent */ }
+    }
     
     // Fallback defaults if Supabase has no brands/categories
     if (brands.length === 0) {
@@ -2875,7 +3063,7 @@ function saveProduct() {
         const groupKey = editId; // editId is the group key (name||brand||...)
         const oldProducts = products.filter(p => getProductGroupId(p) === groupKey);
         oldProducts.forEach(p => {
-            apiDelete('products', p.id);
+            syncDeleteFromSupabase('products', p.id);
         });
         products = products.filter(p => getProductGroupId(p) !== groupKey);
     }
@@ -2983,7 +3171,7 @@ function viewProductGroup(id) {
 function deleteProductGroup(ids) {
     ids.forEach(id => {
         products = products.filter(p => p.id !== id);
-        apiDelete('products', id);
+        syncDeleteFromSupabase('products', id);
     });
     saveProducts();
     reRenderCurrentPage();
@@ -3059,7 +3247,7 @@ async function confirmSuperAdminAuth() {
     // Proceed with deletion
     users = users.filter(u => u.id !== pendingDeleteId);
     saveUsers();
-    apiDelete('users', pendingDeleteId);
+    syncDeleteFromSupabase('users', pendingDeleteId);
     renderUsers();
     pendingDeleteId = null;
     pendingDeleteType = null;
@@ -3070,14 +3258,14 @@ function confirmAction() {
     if (pendingDeleteType === 'product') {
         products = products.filter(p => p.id !== pendingDeleteId);
         saveProducts();
-        apiDelete('products', pendingDeleteId);
+        syncDeleteFromSupabase('products', pendingDeleteId);
         renderInventory();
         renderDashboard();
         showToast('Producto eliminado', 'success');
     } else if (pendingDeleteType === 'user') {
         users = users.filter(u => u.id !== pendingDeleteId);
         saveUsers();
-        apiDelete('users', pendingDeleteId);
+        syncDeleteFromSupabase('users', pendingDeleteId);
         renderUsers();
         document.getElementById('confirmBtn').textContent = 'Eliminar';
         showToast('Usuario eliminado', 'success');
@@ -3087,9 +3275,11 @@ function confirmAction() {
         recalcClientCredits();
         saveSales();
         saveCreditPayments();
-        apiDelete('sales', pendingDeleteId);
+        syncDeleteFromSupabase('sales', pendingDeleteId);
         // Delete credit payments by sale_id in Supabase
-        apiDelete('credit_payments', null, { column: 'sale_id', values: [pendingDeleteId] }).catch(() => {});
+        if (supabaseConnected && sbClient) {
+            sbClient.from('credit_payments').delete().eq('sale_id', pendingDeleteId).then().catch(() => {});
+        }
         renderSalesHistory();
         renderDashboard();
         renderCredits();
@@ -3100,14 +3290,14 @@ function confirmAction() {
         saveSales();
         clients = clients.filter(c => c.id !== pendingDeleteId);
         saveClients();
-        apiDelete('clients', pendingDeleteId);
+        syncDeleteFromSupabase('clients', pendingDeleteId);
         updateClientsDropdown();
         reRenderCurrentPage();
         showToast('Cliente eliminado', 'success');
     } else if (pendingDeleteType === 'quote') {
         quotes = quotes.filter(q => q.id !== pendingDeleteId);
         saveQuotes();
-        apiDelete('quotes', pendingDeleteId);
+        syncDeleteFromSupabase('quotes', pendingDeleteId);
         updateQuotesCount();
         const totalPages = Math.ceil(quotes.length / ITEMS_PER_PAGE);
         if (currentPage.quotes > totalPages) currentPage.quotes = Math.max(1, totalPages);
@@ -4445,8 +4635,10 @@ function deleteSaleConfirmed() {
     recalcClientCredits();
     saveSales();
     saveCreditPayments();
-    apiDelete('sales', id);
-    apiDelete('credit_payments', null, { column: 'sale_id', values: [id] }).catch(() => {});
+    syncDeleteFromSupabase('sales', id);
+    if (supabaseConnected && sbClient) {
+        sbClient.from('credit_payments').delete().eq('sale_id', id).then().catch(() => {});
+    }
     reRenderCurrentPage();
     hideModal('saleActionModal');
     pendingSaleActionId = null;
@@ -5064,7 +5256,7 @@ function renderUsers() {
     }).join('');
 }
 
-async function saveUser() {
+function saveUser() {
     const name = document.getElementById('userName').value.trim();
     const email = document.getElementById('userEmail').value.trim();
     const pass = document.getElementById('userPass').value.trim();
@@ -5076,10 +5268,7 @@ async function saveUser() {
         return;
     }
 
-    const salt = await generateSalt(16);
-    const iterations = 100000;
-    const hash = await hashPassword(pass, salt, iterations);
-    users.push({ id: Date.now(), name, email, passwordHash: hash, passwordSalt: salt, passwordIterations: iterations, role, status: 'active', lastAccess: '' });
+    users.push({ id: Date.now(), name, email, password: pass, role, status: 'active', lastAccess: '' });
     saveUsers();
     renderUsers();
     hideModal('userModal');
@@ -5182,8 +5371,9 @@ function hideLoader() {
 
 // ============ INIT ============
 (async function() {
-    const sessionOk = await checkSessionOnLoad();
-    if (!sessionOk) {
+    await initSupabaseOnly();
+    await ensureHashedPasswords();
+    if (!checkSessionOnLoad()) {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('appLayout').classList.remove('active');
     }
