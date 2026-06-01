@@ -4719,6 +4719,7 @@ function editClientCredit(clientId) {
 function saveClientCredit() {
     const client = clients.find(c => c.id === currentEditClientId);
     if (!client) return;
+    if (!can('edit', 'credit_payments')) { showToast('No tienes permiso para modificar límites de crédito', 'error'); return; }
     
     const newLimit = parseFloat(document.getElementById('editCreditLimit').value);
     if (isNaN(newLimit) || newLimit < 0) { showToast('Ingresa un límite válido (0 = sin límite)', 'error'); return; }
@@ -4891,7 +4892,7 @@ function renderClients() {
                 <td style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">♾️ Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)" ${can('edit','clients') ? '' : 'disabled'}>
+                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)" ${can('edit','settings') ? '' : 'disabled'}>
                         <span class="switch-slider"></span>
                     </label>
                 </td>
@@ -4969,6 +4970,7 @@ function deleteClient(id) {
 function toggleClientCredit(id, enabled) {
     const client = clients.find(c => c.id === id);
     if (!client) return;
+    if (!can('edit', 'settings')) { showToast('No tienes permiso para modificar créditos', 'error'); return; }
     client.creditEnabled = enabled;
     saveClients();
     showToast(enabled ? 'Crédito activado para ' + client.name : 'Crédito desactivado para ' + client.name, 'success');
