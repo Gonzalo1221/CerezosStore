@@ -1334,7 +1334,7 @@
                                     <th>Teléfono</th>
                                     <th>Email</th>
                                     <th>Límite Crédito</th>
-                                    <th>Crédito Activo</th>
+                                    ${can('edit','settings') ? '<th>Crédito Activo</th>' : ''}
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -2510,6 +2510,8 @@ async function handleLogin() {
     const pass = document.getElementById('loginPass').value;
     document.getElementById('loginError').classList.remove('show');
     showLoader();
+    // Allow browser to paint loader before network request
+    await new Promise(r => setTimeout(r, 50));
 
     try {
         const res = await fetch('/api/login', {
@@ -4890,12 +4892,13 @@ function renderClients() {
                 <td>${c.phone || '-'}</td>
                 <td>${c.email || '-'}</td>
                 <td style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">♾️ Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</td>
+                ${can('edit','settings') ? `
                 <td>
                     <label class="switch">
-                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)" ${can('edit','settings') ? '' : 'disabled'}>
+                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)">
                         <span class="switch-slider"></span>
                     </label>
-                </td>
+                </td>` : ''}
                 <td>
                     <div class="actions-cell">
                         ${can('edit','clients') ? `<button class="action-btn edit" onclick="editClient(${c.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
