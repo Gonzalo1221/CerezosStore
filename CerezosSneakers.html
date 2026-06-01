@@ -1000,7 +1000,7 @@
                     <h1><i class="bi bi-grid-1x2-fill"></i> Dashboard</h1>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="showModal('productModal')"><i class="bi bi-plus-lg"></i> Nuevo Producto</button>
+                    <button class="btn btn-secondary btn-sm" onclick="showModal('productModal')" style="${can('create','products') ? '' : 'display:none;'}"><i class="bi bi-plus-lg"></i> Nuevo Producto</button>
                 </div>
             </div>
             <div class="stats-grid">
@@ -1080,8 +1080,8 @@
                     <h1><i class="bi bi-box-seam-fill"></i> Inventario</h1>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="showModal('importModal')"><i class="bi bi-upload"></i> Importar</button>
-                    <button class="btn btn-primary btn-sm" onclick="showModal('productModal')"><i class="bi bi-plus-lg"></i> Nuevo Producto</button>
+                    <button class="btn btn-secondary btn-sm" onclick="showModal('importModal')" style="${can('create','products') ? '' : 'display:none;'}"><i class="bi bi-upload"></i> Importar</button>
+                    <button class="btn btn-primary btn-sm" onclick="showModal('productModal')" style="${can('create','products') ? '' : 'display:none;'}"><i class="bi bi-plus-lg"></i> Nuevo Producto</button>
                 </div>
             </div>
             <div class="search-bar">
@@ -1314,7 +1314,7 @@
                     <h1><i class="bi bi-people"></i> Clientes</h1>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-primary btn-sm" onclick="showModal('clientModal')"><i class="bi bi-person-plus"></i> Nuevo Cliente</button>
+                    <button class="btn btn-primary btn-sm" onclick="showModal('clientModal')" style="${can('create','clients') ? '' : 'display:none;'}"><i class="bi bi-person-plus"></i> Nuevo Cliente</button>
                 </div>
             </div>
             <div class="card">
@@ -1414,7 +1414,7 @@
                     <h1><i class="bi bi-people-fill"></i> Usuarios</h1>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-primary btn-sm" onclick="showModal('userModal')"><i class="bi bi-person-plus"></i> Nuevo Usuario</button>
+                    <button class="btn btn-primary btn-sm" onclick="showModal('userModal')" style="${can('create','users') ? '' : 'display:none;'}"><i class="bi bi-person-plus"></i> Nuevo Usuario</button>
                 </div>
             </div>
             <div class="card">
@@ -1472,7 +1472,7 @@
                             <input type="text" class="form-input" id="settingsRfc" value="CSG260101ABC">
                         </div>
                     </div>
-                    <button class="btn btn-primary" style="width:auto;margin-top:10px;" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+                    <button class="btn btn-primary" style="width:auto;margin-top:10px;${can('edit','settings') ? '' : 'display:none;'}" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
                 </div>
             </div>
             <div class="card">
@@ -1488,7 +1488,7 @@
                             <input type="number" class="form-input" value="30" id="settingsCreditDays">
                         </div>
                     </div>
-                    <button class="btn btn-primary" style="width:auto;margin-top:10px;" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+                    <button class="btn btn-primary" style="width:auto;margin-top:10px;${can('edit','settings') ? '' : 'display:none;'}" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
                 </div>
             </div>
             <div class="card">
@@ -1523,7 +1523,7 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn btn-primary" style="width:auto;margin-top:10px;" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+                    <button class="btn btn-primary" style="width:auto;margin-top:10px;${can('edit','settings') ? '' : 'display:none;'}" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
                 </div>
             </div>
             <div class="card">
@@ -1699,7 +1699,7 @@
                 <select class="form-select" id="checkoutClient" onchange="onClientChange()">
                     <option value="">👤 Consumidor Final</option>
                 </select>
-                <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="showModal('clientModal')"><i class="bi bi-pencil"></i> Registrar Nuevo Cliente</button>
+                <button class="btn btn-secondary btn-sm" style="margin-top:8px;${can('create','clients') ? '' : 'display:none;'}" onclick="showModal('clientModal')"><i class="bi bi-pencil"></i> Registrar Nuevo Cliente</button>
             </div>
             <div id="clientCreditInfo" style="display:none;background:var(--dark3);border-radius:12px;padding:14px;margin-bottom:16px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
@@ -2403,12 +2403,80 @@ function constantTimeCompare(a, b) {
     return result === 0;
 }
 
+// ============ PERMISSIONS (frontend) ============
+const FE_PERMISSIONS = {
+  'Super Admin': {
+    users: ['read','create','edit','delete'],
+    products: ['read','create','edit','delete'],
+    sales: ['read','create','edit','delete','void'],
+    clients: ['read','create','edit','delete'],
+    quotes: ['read','create','edit','delete'],
+    settings: ['read','edit'],
+    credit_payments: ['read','create','edit','delete'],
+    brands: ['read','create','edit','delete'],
+    categories: ['read','create','edit','delete']
+  },
+  'Administrador': {
+    users: ['read','create','edit'],
+    products: ['read','create','edit','delete'],
+    sales: ['read','create','edit','delete','void'],
+    clients: ['read','create','edit','delete'],
+    quotes: ['read','create','edit','delete'],
+    settings: ['read'],
+    credit_payments: ['read','create','edit','delete'],
+    brands: ['read','create','edit','delete'],
+    categories: ['read','create','edit','delete']
+  },
+  'Vendedor': {
+    users: ['read'],
+    products: ['read'],
+    sales: ['read','create'],
+    clients: ['read','create','edit'],
+    quotes: ['read','create','edit','delete'],
+    settings: [],
+    credit_payments: ['read','create'],
+    brands: ['read'],
+    categories: ['read']
+  }
+};
+
+function can(action, table) {
+  if (!currentUser) return false;
+  const perms = FE_PERMISSIONS[currentUser.role];
+  if (!perms) return false;
+  const actions = perms[table];
+  if (!actions) return false;
+  return actions.includes(action);
+}
+
 // ============ SESSION & AUTH (JWT via backend) ============
 function updateSidebarUser(user) {
     document.getElementById('sidebarUserName').textContent = user.name;
     document.getElementById('sidebarUserRole').textContent = user.role;
     const initials = user.name.split(' ').map(n => n[0]).join('').substring(0, 2);
     document.getElementById('sidebarAvatar').textContent = initials;
+    updateSidebarVisibility();
+}
+
+function updateSidebarVisibility() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(el => {
+        const page = el.dataset.page;
+        let visible = false;
+        if (page === 'dashboard' || page === 'pos') visible = true;
+        else if (page === 'inventory' || page === 'quotes' || page === 'sales' || page === 'credits' || page === 'clients') visible = can('read', page);
+        else if (page === 'reports') visible = can('read', 'reports');
+        else if (page === 'users') visible = can('read', 'users');
+        else if (page === 'settings') visible = can('read', 'settings');
+        el.style.display = visible ? '' : 'none';
+    });
+    // Hide section titles if all items in section are hidden
+    document.querySelectorAll('.nav-section').forEach(section => {
+        const items = section.querySelectorAll('.nav-item');
+        const visibleItems = Array.from(items).filter(i => i.style.display !== 'none');
+        const title = section.querySelector('.nav-section-title');
+        if (title) title.style.display = visibleItems.length > 0 ? '' : 'none';
+    });
 }
 
 async function checkSessionOnLoad() {
@@ -2481,6 +2549,14 @@ function handleLogout() {
 
 // ============ NAVIGATION ============
 function navigateTo(page, el) {
+    // Permission guard
+    const pageTableMap = { inventory:'products', pos:'products', sales:'sales', quotes:'quotes', credits:'clients', clients:'clients', reports:'reports', users:'users', settings:'settings' };
+    const table = pageTableMap[page];
+    if (table && !can('read', table)) {
+        showToast('No tienes permiso para acceder a esta sección', 'error');
+        return;
+    }
+    
     document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('page-' + page).classList.add('active');
@@ -2747,8 +2823,8 @@ function renderInventory() {
                 <td>
                     <div class="actions-cell">
                         <button class="action-btn view" onclick="viewProductGroup(${g.ids[0]})" title="Ver"><i class="bi bi-eye"></i></button>
-                        <button class="action-btn edit" onclick="editProduct(${g.ids[0]})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="action-btn delete" onclick='deleteProductGroup([${g.ids.join(',')}])' title="Eliminar grupo"><i class="bi bi-trash3"></i></button>
+                        ${can('edit','products') ? `<button class="action-btn edit" onclick="editProduct(${g.ids[0]})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
+                        ${can('delete','products') ? `<button class="action-btn delete" onclick='deleteProductGroup([${g.ids.join(',')}])' title="Eliminar grupo"><i class="bi bi-trash3"></i></button>` : ''}
                     </div>
                 </td>
             </tr>
@@ -3878,7 +3954,7 @@ function showQuoteReceipt(quote) {
     const footer = document.querySelector('#saleCompleteModal .modal-footer');
     footer.innerHTML = `
         <button class="btn btn-secondary" onclick="printQuote(${quote.id})"><i class="bi bi-printer"></i> Imprimir</button>
-        <button class="btn btn-success" onclick="convertQuoteToSale(${quote.id})"><i class="bi bi-cart4"></i> Convertir en Venta</button>
+        ${can('edit','quotes') ? `<button class="btn btn-success" onclick="convertQuoteToSale(${quote.id})"><i class="bi bi-cart4"></i> Convertir en Venta</button>` : ''}
         <button class="btn btn-secondary" onclick="hideModal('saleCompleteModal')"><i class="bi bi-x-lg"></i> Cerrar</button>
     `;
 }
@@ -3937,9 +4013,9 @@ function renderQuotes() {
                 <td>
                     <div class="actions-cell">
                         <button class="action-btn view" onclick="viewQuote(${q.id})" title="Ver"><i class="bi bi-eye"></i></button>
-                        <button class="action-btn edit" onclick="convertQuoteToSale(${q.id})" title="Convertir en Venta"><i class="bi bi-cart4"></i></button>
+                        ${can('edit','quotes') ? `<button class="action-btn edit" onclick="convertQuoteToSale(${q.id})" title="Convertir en Venta"><i class="bi bi-cart4"></i></button>` : ''}
                         <button class="action-btn print" onclick="printQuote(${q.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
-                        <button class="action-btn delete" onclick="deleteQuote(${q.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                        ${can('delete','quotes') ? `<button class="action-btn delete" onclick="deleteQuote(${q.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
                     </div>
                 </td>
             </tr>
@@ -4354,12 +4430,12 @@ function renderSalesHistory() {
                 <td><span class="status-badge ${creditStatusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${creditStatusLabel}${isCredit && s.creditRemaining > 0 ? ' $' + s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0}) : ''}</span></td>
                 <td>
                     <div class="actions-cell">
-                        ${isCredit && s.creditRemaining > 0 ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}
+                        ${isCredit && s.creditRemaining > 0 && can('create','credit_payments') ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}
                         <button class="action-btn view" onclick="viewSaleDetail(${s.id})" title="Ver"><i class="bi bi-receipt"></i></button>
-                        <button class="action-btn edit" onclick="editSale(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        ${can('edit','sales') ? `<button class="action-btn edit" onclick="editSale(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
                         <button class="action-btn print" onclick="printSale(${s.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
                         <button class="action-btn download" onclick="downloadSalePdf(${s.id})" title="Descargar PDF"><i class="bi bi-download"></i></button>
-                        <button class="action-btn delete" onclick="deleteSale(${s.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                        ${can('delete','sales') ? `<button class="action-btn delete" onclick="deleteSale(${s.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
                     </div>
                 </td>
             </tr>
@@ -4516,7 +4592,7 @@ function renderCredits() {
                 <td><span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span></td>
                 <td>
                     <div class="actions-cell">
-                        <button class="action-btn edit" onclick="editClientCredit(${c.id})" title="Editar Límite"><i class="bi bi-pencil"></i></button>
+                        ${can('edit','credit_payments') ? `<button class="action-btn edit" onclick="editClientCredit(${c.id})" title="Editar Límite"><i class="bi bi-pencil"></i></button>` : ''}
                         <button class="action-btn view" onclick="viewClientCredits(${c.id})" title="Ver Detalle"><i class="bi bi-eye"></i></button>
                     </div>
                 </td>
@@ -4545,7 +4621,7 @@ function renderCredits() {
                 <td><span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span></td>
                 <td>
                     <div class="actions-cell">
-                        <button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>
+                        ${can('create','credit_payments') ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}
                         <button class="action-btn view" onclick="viewSaleCreditDetail(${s.id})" title="Ver Detalle"><i class="bi bi-eye"></i></button>
                         <button class="action-btn print" onclick="printSale(${s.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
                         <button class="action-btn download" onclick="downloadSalePdf(${s.id})" title="Descargar PDF"><i class="bi bi-download"></i></button>
@@ -4809,14 +4885,14 @@ function renderClients() {
                 <td style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">♾️ Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)">
+                        <input type="checkbox" ${creditEnabled ? 'checked' : ''} onchange="toggleClientCredit(${c.id}, this.checked)" ${can('edit','clients') ? '' : 'disabled'}>
                         <span class="switch-slider"></span>
                     </label>
                 </td>
                 <td>
                     <div class="actions-cell">
-                        <button class="action-btn edit" onclick="editClient(${c.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="action-btn delete" onclick="deleteClient(${c.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                        ${can('edit','clients') ? `<button class="action-btn edit" onclick="editClient(${c.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
+                        ${can('delete','clients') ? `<button class="action-btn delete" onclick="deleteClient(${c.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
                     </div>
                 </td>
             </tr>
