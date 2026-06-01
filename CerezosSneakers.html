@@ -2414,7 +2414,14 @@ function saveSettings() {
 
 
 // ============ SAVE FUNCTIONS (via backend API) ============
-async function saveProducts() { try { await apiUpsert('products', products); } catch (e) { console.warn('saveProducts:', e); } }
+async function saveProducts() {
+    try {
+        await apiUpsert('products', products);
+    } catch (e) {
+        console.warn('saveProducts:', e);
+        showToast('Error al guardar productos: ' + e.message, 'error');
+    }
+}
 async function saveSales() { try { await apiUpsert('sales', sales); } catch (e) { console.warn('saveSales:', e); } }
 async function saveQuotes() { try { await apiUpsert('quotes', quotes); } catch (e) { console.warn('saveQuotes:', e); } }
 function loadQuotes(data) { quotes = (data || []).map(q => ({ ...q, items: q.items || [] })); }
@@ -2988,7 +2995,7 @@ function getProductGroupId(p) {
     return [p.name, p.brand, p.category, p.gender, p.cost, p.price].join('||');
 }
 
-function saveProduct() {
+async function saveProduct() {
     const editId = document.getElementById('editProductId').value;
     const name = document.getElementById('prodName').value.trim();
     const brand = document.getElementById('prodBrand').value.trim();
@@ -3007,11 +3014,11 @@ function saveProduct() {
 
     // Remove old products in this group if editing
     if (editId) {
-        const groupKey = editId; // editId is the group key (name||brand||...)
+        const groupKey = editId;
         const oldProducts = products.filter(p => getProductGroupId(p) === groupKey);
-        oldProducts.forEach(p => {
-            apiDelete('products', p.id);
-        });
+        for (const p of oldProducts) {
+            await apiDelete('products', p.id).catch(() => {});
+        }
         products = products.filter(p => getProductGroupId(p) !== groupKey);
     }
 
@@ -3031,7 +3038,7 @@ function saveProduct() {
         });
     });
 
-    saveProducts();
+    await saveProducts();
     hideModal('productModal');
     clearProductForm();
     reRenderCurrentPage();
