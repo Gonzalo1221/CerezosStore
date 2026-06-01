@@ -2411,6 +2411,7 @@ const FE_PERMISSIONS = {
     sales: ['read','create','edit','delete','void'],
     clients: ['read','create','edit','delete'],
     quotes: ['read','create','edit','delete'],
+    reports: ['read'],
     settings: ['read','edit'],
     credit_payments: ['read','create','edit','delete'],
     brands: ['read','create','edit','delete'],
@@ -2422,6 +2423,7 @@ const FE_PERMISSIONS = {
     sales: ['read','create','edit','delete','void'],
     clients: ['read','create','edit','delete'],
     quotes: ['read','create','edit','delete'],
+    reports: ['read'],
     settings: ['read'],
     credit_payments: ['read','create','edit','delete'],
     brands: ['read','create','edit','delete'],
@@ -2433,6 +2435,7 @@ const FE_PERMISSIONS = {
     sales: ['read','create'],
     clients: ['read','create','edit'],
     quotes: ['read','create','edit','delete'],
+    reports: ['read'],
     settings: [],
     credit_payments: ['read','create'],
     brands: ['read'],
@@ -2460,14 +2463,13 @@ function updateSidebarUser(user) {
 
 function updateSidebarVisibility() {
     const navItems = document.querySelectorAll('.nav-item');
+    const pageTableMap = { inventory:'products', pos:'products', sales:'sales', quotes:'quotes', credits:'clients', clients:'clients', reports:'reports', users:'users', settings:'settings' };
     navItems.forEach(el => {
         const page = el.dataset.page;
+        const table = pageTableMap[page];
         let visible = false;
         if (page === 'dashboard' || page === 'pos') visible = true;
-        else if (page === 'inventory' || page === 'quotes' || page === 'sales' || page === 'credits' || page === 'clients') visible = can('read', page);
-        else if (page === 'reports') visible = can('read', 'reports');
-        else if (page === 'users') visible = can('read', 'users');
-        else if (page === 'settings') visible = can('read', 'settings');
+        else if (table) visible = can('read', table);
         el.style.display = visible ? '' : 'none';
     });
     // Hide section titles if all items in section are hidden
@@ -2507,6 +2509,7 @@ async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPass').value;
     document.getElementById('loginError').classList.remove('show');
+    showLoader();
 
     try {
         const res = await fetch('/api/login', {
@@ -2520,17 +2523,20 @@ async function handleLogin() {
             setApiToken(data.token);
             currentUser = data.user;
             await initSupabaseOnly();
+            hideLoader();
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('appLayout').classList.add('active');
             updateSidebarUser(data.user);
             showToast(`Bienvenido, ${data.user.name}`, 'success');
             initApp();
         } else {
+            hideLoader();
             document.getElementById('loginError').textContent = data.error || 'Credenciales incorrectas';
             document.getElementById('loginError').classList.add('show');
             setTimeout(() => document.getElementById('loginError').classList.remove('show'), 3000);
         }
     } catch (e) {
+        hideLoader();
         document.getElementById('loginError').textContent = 'Error de conexión con el servidor';
         document.getElementById('loginError').classList.add('show');
         setTimeout(() => document.getElementById('loginError').classList.remove('show'), 4000);
@@ -5251,6 +5257,10 @@ function deleteUser(id) {
     showModal('confirmModal');
 }
 
+function showLoader() {
+    const el = document.getElementById('loaderOverlay');
+    if (el) { el.classList.remove('hidden'); }
+}
 function hideLoader() {
     const el = document.getElementById('loaderOverlay');
     if (el) { el.classList.add('hidden'); setTimeout(() => el.remove(), 600); }
