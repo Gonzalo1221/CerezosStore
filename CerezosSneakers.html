@@ -2796,17 +2796,30 @@ function renderDashboard() {
     `).join('');
 
     const topEl = document.getElementById('topSalesList');
-    const topProducts = products.filter(p => p.stock > 0).sort((a, b) => b.price - a.price).slice(0, 5);
-    topEl.innerHTML = topProducts.map((p, i) => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < topProducts.length-1 ? 'border-bottom:1px solid var(--dark3);' : ''}">
+    const salesByProduct = {};
+    sales.forEach(s => {
+        (s.items || []).forEach(item => {
+            const key = item.name + '||' + item.price;
+            if (!salesByProduct[key]) salesByProduct[key] = { name: item.name, price: item.price, qty: 0 };
+            salesByProduct[key].qty += item.qty;
+        });
+    });
+    let topList = Object.values(salesByProduct).sort((a, b) => b.qty - a.qty).slice(0, 5);
+    if (topList.length === 0) {
+        topList = products.filter(p => p.stock > 0).sort((a, b) => b.price - a.price).slice(0, 5);
+    }
+    topEl.innerHTML = topList.map((p, i) => {
+        const brandCat = p.brand ? `${p.brand} · ${p.category}` : (p.qty ? `${p.qty} vendidos` : '');
+        return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < topList.length-1 ? 'border-bottom:1px solid var(--dark3);' : ''}">
             <span style="width:24px;height:24px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--primary);">${i+1}</span>
             <div style="flex:1;">
                 <div style="font-size:13px;font-weight:600;">${p.name}</div>
-                <div style="font-size:11px;color:var(--gray);">${p.brand} · ${p.category}</div>
+                <div style="font-size:11px;color:var(--gray);">${brandCat}</div>
             </div>
             <span style="color:var(--primary);font-weight:700;font-size:14px;">$${p.price.toLocaleString()}</span>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     const recentBody = document.getElementById('recentSalesBody');
     const recent = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
