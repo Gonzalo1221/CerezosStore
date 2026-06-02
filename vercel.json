@@ -1,6 +1,7 @@
 {
   "version": 2,
   "routes": [
-    { "src": "^/$", "dest": "/CerezosSneakers.html" }
+    { "src": "^/$", "dest": "/index.html" },
+    { "src": "^/CerezosSneakers\\.html$", "dest": "/index.html" }
   ]
 }

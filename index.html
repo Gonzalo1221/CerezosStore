@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cerezos Store GLZ - Gestión de Inventarios y Ventas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loader-overlay" id="loaderOverlay">
+    <div class="loader-content">
+        <div class="loader-anim">
+            <div class="loader-ring">
+                <div class="loader-ring-inner"></div>
+            </div>
+            <div class="loader-logo">
+                <img src="assets/logo.png" alt="Cerezos Sneaker">
+            </div>
+        </div>
+        <div class="loader-texts">
+            <div class="loader-text">Cargando...</div>
+            <div class="loader-brand">CEREZOS STORE</div>
+        </div>
+    </div>
+</div>
+
+<!-- LOGIN PAGE -->
+<div class="login-container" id="loginPage" onkeydown="if(event.key==='Enter')handleLogin()">
+    <div class="login-card">
+        <div class="login-logo">
+            <img src="assets/logo.png" alt="Cerezos Sneaker Logo" style="width: 151px; height: 151px; object-fit: contain;">
+        </div>
+        <div class="login-title"><span>CEREZOS</span> STORE</div>
+        <div class="login-subtitle">Sistema de Gestión de Inventarios y Ventas</div>
+        <div class="login-error" id="loginError"></div>
+        <div class="form-group">
+            <label>Correo electrónico</label>
+            <input type="email" class="form-input" id="loginEmail" placeholder="admin@sneakers.com" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" class="form-input" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" onclick="handleLogin()">
+            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+        </button>
+        <div class="login-footer">Cerezos Store GLZ &mdash; <span>v2.0</span></div>
+    </div>
+</div>
+
+<!-- APP LAYOUT -->
+<div class="app-layout" id="appLayout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo"><img src="assets/logo.png" alt="Cerezos Sneaker" style="object-fit:contain;border-radius:8px;"></div>
+            <div class="sidebar-brand">
+                <h2>CEREZOS</h2>
+                <small>Administración</small>
+            </div>
+        </div>
+        
+        <div class="sidebar-sync">
+            <div class="sync-dot"></div>
+            <span>Base de datos en la nube</span>
+        </div>
+        
+        <nav class="sidebar-nav" id="sidebarNav">
+            <div class="nav-section">
+                <div class="nav-section-title">General</div>
+                <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard',this)">
+                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                </div>
+                <div class="nav-item" data-page="pos" onclick="navigateTo('pos',this)">
+                    <i class="bi bi-cart3"></i> Punto de Venta
+                    <span class="badge" id="cartBadge">0</span>
+                </div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Gestión</div>
+                <div class="nav-item" data-page="inventory" onclick="navigateTo('inventory',this)">
+                    <i class="bi bi-box-seam"></i> Inventario
+                </div>
+                <div class="nav-item" data-page="sales" onclick="navigateTo('sales',this)">
+                    <i class="bi bi-receipt"></i> Ventas
+                </div>
+                <div class="nav-item" data-page="quotes" onclick="navigateTo('quotes',this)">
+                    <i class="bi bi-file-text"></i> Cotizaciones
+                </div>
+                <div class="nav-item" data-page="credits" onclick="navigateTo('credits',this)">
+                    <i class="bi bi-credit-card"></i> Créditos
+                    <span class="badge" id="creditsBadge" style="display:none">0</span>
+                </div>
+                <div class="nav-item" data-page="clients" onclick="navigateTo('clients',this)">
+                    <i class="bi bi-people"></i> Clientes
+                </div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Analítica</div>
+                <div class="nav-item" data-page="reports" onclick="navigateTo('reports',this)">
+                    <i class="bi bi-graph-up"></i> Reportes
+                </div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Sistema</div>
+                <div class="nav-item" data-page="users" onclick="navigateTo('users',this)">
+                    <i class="bi bi-shield-lock"></i> Usuarios
+                </div>
+                <div class="nav-item" data-page="settings" onclick="navigateTo('settings',this)">
+                    <i class="bi bi-gear"></i> Configuración
+                </div>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-avatar" id="sidebarAvatar">A</div>
+            <div class="user-info">
+                <h4 id="sidebarUserName">Admin</h4>
+                <small id="sidebarUserRole">Administrador</small>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button>
+        </div>
+    </aside>
+    
+    <!-- SIDEBAR BACKDROP (mobile) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- Mobile topbar -->
+        <div class="mobile-topbar">
+            <button class="menu-btn" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+            <div class="mobile-topbar-brand">CEREZOS</div>
+            <button class="menu-btn" onclick="navigateTo('pos',document.querySelector('[data-page=pos]'))"><i class="bi bi-cart3"></i></button>
+        </div>
+        
+        <!-- PAGE: Dashboard -->
+        <div class="page-section active" id="page-dashboard">
+            <div class="page-header">
+                <h1><i class="bi bi-grid-1x2-fill"></i> Dashboard</h1>
+            </div>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card"><div class="stat-icon gold"><i class="bi bi-box-seam"></i></div><div class="stat-value" id="statProducts">0</div><div class="stat-label">Productos</div></div>
+                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-currency-dollar"></i></div><div class="stat-value" id="statSales">$0</div><div class="stat-label">Ventas del Mes</div></div>
+                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-receipt"></i></div><div class="stat-value" id="statOrders">0</div><div class="stat-label">Pedidos del Mes</div></div>
+                <div class="stat-card"><div class="stat-icon red"><i class="bi bi-credit-card-2-front"></i></div><div class="stat-value" id="statCredits">$0</div><div class="stat-label">Créditos Pendientes</div></div>
+            </div>
+            <div class="dashboard-grid">
+                <div class="dash-card">
+                    <h3><i class="bi bi-bar-chart"></i> Ventas Semanales</h3>
+                    <div class="weekly-chart" id="weeklyChart"></div>
+                </div>
+                <div class="dash-card">
+                    <h3><i class="bi bi-trophy"></i> Top Ventas</h3>
+                    <ul class="top-sales-list" id="topSalesList"></ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PAGE: POS -->
+        <div class="page-section" id="page-pos">
+            <div class="page-header">
+                <h1><i class="bi bi-cart3"></i> Punto de Venta</h1>
+                <div class="header-actions">
+                    <input type="text" class="search-input" id="posSearch" placeholder="Buscar producto..." oninput="filterPosProducts()" style="min-width:200px;">
+                </div>
+            </div>
+            <div class="pos-container" id="posContainer"></div>
+        </div>
+        
+        <!-- PAGE: Inventory -->
+        <div class="page-section" id="page-inventory">
+            <div class="page-header">
+                <h1><i class="bi bi-box-seam"></i> Inventario</h1>
+                <div class="header-actions" id="invHeaderActions"></div>
+            </div>
+            <div class="inventory-container" id="inventoryContainer"></div>
+        </div>
+        
+        <!-- PAGE: Sales -->
+        <div class="page-section" id="page-sales">
+            <div class="page-header">
+                <h1><i class="bi bi-receipt"></i> Historial de Ventas</h1>
+                <div class="header-actions" id="salesHeaderActions"></div>
+            </div>
+            <div id="salesHistoryContainer"></div>
+        </div>
+        
+        <!-- PAGE: Quotes -->
+        <div class="page-section" id="page-quotes">
+            <div class="page-header">
+                <h1><i class="bi bi-file-text"></i> Cotizaciones</h1>
+                <div class="header-actions" id="quotesHeaderActions"></div>
+            </div>
+            <div id="quotesContainer"></div>
+        </div>
+        
+        <!-- PAGE: Credits -->
+        <div class="page-section" id="page-credits">
+            <div class="page-header">
+                <h1><i class="bi bi-credit-card"></i> Créditos</h1>
+            </div>
+            <div id="creditsContainer"></div>
+        </div>
+        
+        <!-- PAGE: Clients -->
+        <div class="page-section" id="page-clients">
+            <div class="page-header">
+                <h1><i class="bi bi-people"></i> Clientes</h1>
+                <div class="header-actions" id="clientsHeaderActions"></div>
+            </div>
+            <div id="clientsContainer"></div>
+        </div>
+        
+        <!-- PAGE: Reports -->
+        <div class="page-section" id="page-reports">
+            <div class="page-header">
+                <h1><i class="bi bi-graph-up"></i> Reportes</h1>
+                <div class="header-actions" id="reportsHeaderActions"></div>
+            </div>
+            <div id="reportsContainer"></div>
+        </div>
+        
+        <!-- PAGE: Users -->
+        <div class="page-section" id="page-users">
+            <div class="page-header">
+                <h1><i class="bi bi-shield-lock"></i> Usuarios</h1>
+                <div class="header-actions" id="usersHeaderActions"></div>
+            </div>
+            <div id="usersContainer"></div>
+        </div>
+        
+        <!-- PAGE: Settings -->
+        <div class="page-section" id="page-settings">
+            <div class="page-header">
+                <h1><i class="bi bi-gear"></i> Configuración</h1>
+            </div>
+            <div id="settingsContainer"></div>
+        </div>
+    </main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="productModal" onclick="if(event.target===this)hideModal('productModal')"><div class="modal-content modal-lg" id="productModalContent"></div></div>
+<div class="modal-overlay" id="sizePickerModal" onclick="if(event.target===this)hideModal('sizePickerModal')"><div class="modal-content modal-sm" id="sizePickerModalContent"></div></div>
+<div class="modal-overlay" id="checkoutModal" onclick="if(event.target===this)hideModal('checkoutModal')"><div class="modal-content modal-lg" id="checkoutModalContent"></div></div>
+<div class="modal-overlay" id="receiptModal" onclick="if(event.target===this)hideModal('receiptModal')"><div class="modal-content modal-sm" id="receiptModalContent"></div></div>
+<div class="modal-overlay" id="confirmModal" onclick="if(event.target===this)hideModal('confirmModal')"><div class="modal-content modal-sm"><div class="modal-header"><h3>Confirmar</h3></div><div class="modal-body"><p id="confirmMessage"></p></div><div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal('confirmModal')">Cancelar</button><button class="btn btn-danger" id="confirmBtn" onclick="confirmAction()">Eliminar</button></div></div></div>
+<div class="modal-overlay" id="userModal" onclick="if(event.target===this)hideModal('userModal')"><div class="modal-content modal-sm" id="userModalContent"></div></div>
+<div class="modal-overlay" id="clientModal" onclick="if(event.target===this)hideModal('clientModal')"><div class="modal-content modal-sm" id="clientModalContent"></div></div>
+<div class="modal-overlay" id="saleEditModal" onclick="if(event.target===this)hideModal('saleEditModal')"><div class="modal-content modal-lg" id="saleEditModalContent"></div></div>
+<div class="modal-overlay" id="superAdminModal" onclick="if(event.target===this)hideModal('superAdminModal')"><div class="modal-content modal-sm" id="superAdminModalContent"></div></div>
+<div class="modal-overlay" id="saleDetailModal" onclick="if(event.target===this)hideModal('saleDetailModal')"><div class="modal-content modal-sm" id="saleDetailModalContent"></div></div>
+<div class="modal-overlay" id="abonoModal" onclick="if(event.target===this)hideModal('abonoModal')"><div class="modal-content modal-sm" id="abonoModalContent"></div></div>
+<div class="modal-overlay" id="creditClientModal" onclick="if(event.target===this)hideModal('creditClientModal')"><div class="modal-content modal-sm" id="creditClientModalContent"></div></div>
+<div class="modal-overlay" id="quoteDetailModal" onclick="if(event.target===this)hideModal('quoteDetailModal')"><div class="modal-content modal-sm" id="quoteDetailModalContent"></div></div>
+
+<!-- HIDDEN PRINT SECTION -->
+<div id="printReceiptSection" style="position:fixed;top:-9999px;left:-9999px;width:80mm;background:white;padding:0;font-family:'Courier New',monospace;font-size:11px;color:#000;"></div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- PDF generation libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Backend API handles all Supabase communication -->
+<script src="js/app.js"></script>
+</body>
+</html>
