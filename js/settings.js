@@ -1,0 +1,160 @@
+// ============ SETTINGS ============
+let ivaRate = 16;
+
+let minStock = 5;
+let autoTicket = 'yes';
+let defaultInterest = 20;
+let fixedCost = 0;
+let businessName = 'Cerezos Store GLZ';
+let businessPhone = '+52 555 123 4567';
+let businessAddress = 'Av. Principal #123, Col. Centro';
+let businessRfc = 'CST260101ABC';
+let creditLimit = 10000;
+let creditDays = 30;
+
+function populateBrandCategoryDropdowns() {
+    // Brand dropdown (product form)
+    const brandSel = document.getElementById('prodBrand');
+    if (brandSel) {
+        const current = brandSel.value;
+        brandSel.innerHTML = '<option value="">Seleccionar marca...</option>' +
+            brands.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+        brandSel.value = current || '';
+    }
+    // Category dropdown (product form)
+    const catSel = document.getElementById('prodCategory');
+    if (catSel) {
+        const current = catSel.value;
+        catSel.innerHTML = '<option value="">Seleccionar categoría...</option>' +
+            categories.map(c => `<option value="${c.name}">${getCategoryIcon(c.name)} ${c.name}</option>`).join('');
+        catSel.value = current || '';
+    }
+    // Category filter (inventory)
+    const invFilter = document.getElementById('filterCategory');
+    if (invFilter) {
+        const current = invFilter.value;
+        invFilter.innerHTML = '<option value="">Todas las categorías</option>' +
+            categories.map(c => `<option value="${c.name}">${getCategoryIcon(c.name)} ${c.name}</option>`).join('');
+        invFilter.value = current || '';
+    }
+    // Category filter (POS)
+    const posFilter = document.getElementById('posCategoryFilter');
+    if (posFilter) {
+        const current = posFilter.value;
+        posFilter.innerHTML = '<option value="">Todas</option>' +
+            categories.map(c => `<option value="${c.name}">${getCategoryIcon(c.name)} ${c.name}</option>`).join('');
+        posFilter.value = current || '';
+    }
+}
+
+function loadSettings() {
+    document.getElementById('settingsBusinessName').value = businessName;
+    document.getElementById('settingsPhone').value = businessPhone;
+    document.getElementById('settingsAddress').value = businessAddress;
+    document.getElementById('settingsRfc').value = businessRfc;
+    document.getElementById('settingsCreditLimit').value = creditLimit;
+    document.getElementById('settingsCreditDays').value = creditDays;
+    document.getElementById('settingsTax').value = ivaRate;
+
+    document.getElementById('settingsMinStock').value = minStock;
+    document.getElementById('settingsAutoTicket').value = autoTicket;
+    document.getElementById('settingsDefaultInterest').value = defaultInterest;
+    document.getElementById('settingsFixedCost').value = fixedCost;
+}
+
+function updateBusinessNameUI() {
+    const els = document.querySelectorAll('#footerBusinessName, .receipt-business-name');
+    els.forEach(el => { el.textContent = businessName; });
+}
+
+function reRenderCurrentPage() {
+    const active = document.querySelector('.page-section.active');
+    if (!active) return;
+    const id = active.id;
+    if (id === 'page-inventory') renderInventory();
+    else if (id === 'page-pos') renderPosProducts();
+    else if (id === 'page-sales') renderSalesHistory();
+    else if (id === 'page-credits') renderCredits();
+    else if (id === 'page-reports') renderReports();
+    else if (id === 'page-users') renderUsers();
+    else if (id === 'page-clients') renderClients();
+    else if (id === 'page-dashboard') renderDashboard();
+    else if (id === 'page-quotes') renderQuotes();
+}
+
+function saveSettings() {
+    businessName = document.getElementById('settingsBusinessName').value || businessName;
+    businessPhone = document.getElementById('settingsPhone').value || businessPhone;
+    businessAddress = document.getElementById('settingsAddress').value || businessAddress;
+    businessRfc = document.getElementById('settingsRfc').value || businessRfc;
+    const v = id => document.getElementById(id).value;
+    creditLimit = parseInt(v('settingsCreditLimit'));
+    if (isNaN(creditLimit) || creditLimit < 0) creditLimit = 0;
+    creditDays = parseInt(v('settingsCreditDays'));
+    if (isNaN(creditDays) || creditDays < 0) creditDays = 30;
+    ivaRate = parseInt(v('settingsTax'));
+    if (isNaN(ivaRate) || ivaRate < 0) ivaRate = 0;
+
+    minStock = parseInt(v('settingsMinStock'));
+    if (isNaN(minStock) || minStock < 0) minStock = 0;
+    autoTicket = v('settingsAutoTicket') || 'yes';
+    defaultInterest = parseFloat(v('settingsDefaultInterest'));
+    if (isNaN(defaultInterest) || defaultInterest < 0) defaultInterest = 0;
+    fixedCost = parseFloat(v('settingsFixedCost'));
+    if (isNaN(fixedCost) || fixedCost < 0) fixedCost = 0;
+    const settingsData = {id: 1, ivaRate, minStock, autoTicket, defaultInterest, fixedCost, businessName, businessPhone, businessAddress, businessRfc, creditLimit, creditDays};
+    apiUpsert('settings', settingsData).catch(e => console.warn('saveSettings:', e));
+    updateBusinessNameUI();
+    reRenderCurrentPage();
+    showToast('Configuración guardada', 'success');
+}
+
+
+
+// ============ SAVE FUNCTIONS (via backend API) ============
+async function saveProducts() {
+    try {
+        await apiUpsert('products', products);
+    } catch (e) {
+        console.warn('saveProducts:', e);
+        showToast('Error al guardar productos: ' + e.message, 'error');
+    }
+}
+async function saveSales() { try { await apiUpsert('sales', sales); } catch (e) { console.warn('saveSales:', e); } }
+async function saveQuotes() { try { await apiUpsert('quotes', quotes); } catch (e) { console.warn('saveQuotes:', e); } }
+function loadQuotes(data) { quotes = (data || []).map(q => ({ ...q, items: q.items || [] })); }
+async function saveUsers() { try { await apiUpsert('users', users); } catch (e) { console.warn('saveUsers:', e); } }
+async function saveClients() { try { await apiUpsert('clients', clients); } catch (e) { console.warn('saveClients:', e); } }
+async function saveCreditPayments() { try { await apiUpsert('credit_payments', creditPayments); } catch (e) { console.warn('saveCreditPayments:', e); } }
+// ============ SECURITY HELPERS (password hashing for user management) ============
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+}
+function base64ToArrayBuffer(base64) {
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+}
+async function generateSalt(len = 16) {
+    const salt = crypto.getRandomValues(new Uint8Array(len));
+    return arrayBufferToBase64(salt.buffer);
+}
+async function hashPassword(password, saltBase64, iterations = 100000) {
+    const enc = new TextEncoder();
+    const saltBuf = base64ToArrayBuffer(saltBase64);
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const derivedBits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new Uint8Array(saltBuf), iterations, hash: 'SHA-256' }, keyMaterial, 256);
+    return arrayBufferToBase64(derivedBits);
+}
+function constantTimeCompare(a, b) {
+    if (a.length !== b.length) return false;
+    let result = 0;
+    for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return result === 0;
+}
+
