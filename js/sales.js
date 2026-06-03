@@ -1,7 +1,10 @@
 // ============ PRINT / SHARE HELPERS ============
 function buildReceiptBody(sale) {
     const isCredit = sale.creditType === 'credito';
-    const itemsHtml = (sale.items || []).map(i => `<tr><td style="font-size:11px;">${i.name}</td><td style="text-align:center;font-size:11px;">${i.qty}</td><td style="text-align:right;font-size:11px;">$${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td></tr>`).join('');
+    const itemsHtml = (sale.items || []).map(i => {
+        const sizeLabel = i.size ? ' <span style="color:#999;font-size:9px;">' + i.size + '</span>' : '';
+        return `<tr><td style="font-size:11px;">${i.name}${sizeLabel}</td><td style="text-align:center;font-size:11px;">${i.qty}</td><td style="text-align:right;font-size:11px;">$${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td></tr>`;
+    }).join('');
     const ivaPercent = sale.subtotal ? Math.round((sale.tax / sale.subtotal) * 100) : ivaRate;
     const subtotalConIva = sale.subtotal + sale.tax;
     const hasInterest = isCredit && sale.creditInterestAmount > 0;
@@ -109,7 +112,7 @@ function getSalePlainText(sale) {
     if (isCredit) text += `*** VENTA A CREDITO ***\n`;
     if (isCredit && sale.creditInstallments > 1) text += `${sale.creditInstallments} cuotas de $${sale.creditInstallmentValue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`;
     text += `\nArticulos:\n`;
-    (sale.items || []).forEach(i => { text += `${i.qty}x ${i.name} - $${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`; });
+    (sale.items || []).forEach(i => { text += `${i.qty}x ${i.name}${i.size ? ' [' + i.size + ']' : ''} - $${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`; });
     const subtotalConIva = sale.subtotal + sale.tax;
     text += `\nSubtotal (productos): $${sale.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
     text += `\n+ IVA (${ivaPct}%): $${sale.tax.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
@@ -199,7 +202,8 @@ async function downloadSalePdf(saleId) {
 
         pdf.setFontSize(7); pdf.setFont('helvetica', 'normal');
         items.forEach(i => {
-            pdf.text(i.name, M, y);
+            const label = i.size ? i.name + ' (' + i.size + ')' : i.name;
+            pdf.text(label, M, y);
             pdf.text(i.qty + 'x', PW - 24, y, { align: 'right' });
             pdf.text('$' + (i.price * i.qty).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 }), PW - M, y, { align: 'right' });
             y += 4;
@@ -287,7 +291,7 @@ function renderSalesHistory() {
 
     const tbody = document.getElementById('salesHistoryBody');
     tbody.innerHTML = pageItems.map(s => {
-        const itemsSummary = s.items.map(i => `${i.qty}x ${i.name}`).join(', ');
+        const itemsSummary = s.items.map(i => `${i.qty}x ${i.name}${i.size ? ' [' + i.size + ']' : ''}`).join(', ');
         const isCredit = s.creditType === 'credito';
         const isAnnulled = s.status === 'Anulada';
         const creditStatusClass = isAnnulled ? 'inactive' : (!isCredit ? 'active' : (s.creditRemaining > 0 ? 'pending' : 'paid'));
@@ -364,10 +368,9 @@ function annulSale() {
     if (!sale) { hideModal('saleActionModal'); return; }
     // Return items to stock
     (sale.items || []).forEach(item => {
-        // Find product by name (and approximate price match)
-        const product = products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01);
-        if (product) {
-            product.stock = (product.stock || 0) + item.qty;
+        const product = products.find(p => p.id === item.productId);
+        if (product && item.sizeId) {
+            setStockForSize(product, item.sizeId, getStockForSize(product, item.sizeId) + item.qty);
         }
     });
     // Mark sale as annulled
@@ -381,7 +384,7 @@ function annulSale() {
         }
     }
     saveSales();
-    saveProducts();
+    saveProducts().catch(e => console.warn('saveProducts:', e));
     saveClients();
     reRenderCurrentPage();
     hideModal('saleActionModal');

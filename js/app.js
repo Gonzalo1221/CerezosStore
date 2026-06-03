@@ -132,16 +132,25 @@ async function initSupabaseOnly() {
     // Ensure new fields on brands (parse JSON strings from Supabase)
     brands.forEach(b => {
         if (typeof b.categoryIds === 'string') try { b.categoryIds = JSON.parse(b.categoryIds); } catch(e) { b.categoryIds = []; }
-        if (typeof b.sizeIds === 'string') try { b.sizeIds = JSON.parse(b.sizeIds); } catch(e) { b.sizeIds = []; }
         if (!Array.isArray(b.categoryIds)) b.categoryIds = [];
-        if (!Array.isArray(b.sizeIds)) b.sizeIds = [];
-        if (!b.sizeSystem) b.sizeSystem = 'shoe';
+        delete b.sizeIds;
+        delete b.sizeSystem;
+    });
+    
+    // Ensure new fields on products (V2: multi-size per product)
+    products.forEach(p => {
+        if (typeof p.sizeIds === 'string') try { p.sizeIds = JSON.parse(p.sizeIds); } catch(e) { p.sizeIds = []; }
+        if (!Array.isArray(p.sizeIds)) p.sizeIds = [];
+        if (typeof p.stocks === 'string') try { p.stocks = JSON.parse(p.stocks); } catch(e) { p.stocks = {}; }
+        if (!p.stocks || typeof p.stocks !== 'object') p.stocks = {};
     });
     
     // Ensure new fields on categories (parse JSON strings from Supabase)
     categories.forEach(c => {
         if (typeof c.subcategories === 'string') try { c.subcategories = JSON.parse(c.subcategories); } catch(e) { c.subcategories = []; }
         if (!Array.isArray(c.subcategories)) c.subcategories = [];
+        if (typeof c.sizeIds === 'string') try { c.sizeIds = JSON.parse(c.sizeIds); } catch(e) { c.sizeIds = []; }
+        if (!Array.isArray(c.sizeIds)) c.sizeIds = [];
         if (!c.type) c.type = 'prenda';
         if (!c.department) c.department = 'unisex';
         if (!c.icon) c.icon = '🏷️';
@@ -160,7 +169,7 @@ async function initSupabaseOnly() {
             'Adidas','Asics','Balenciaga','Brooks','Converse','Crocs','Diadora',
             'Dr. Martens','Fila','Hoka','Jordan','New Balance','Nike','On','Puma',
             'Reebok','Saucony','Skechers','Timberland','Under Armour','Vans'
-        ].map((n,i) => ({ id: i+1, name: n, categoryIds: [], sizeIds: [], sizeSystem: 'shoe' }));
+        ].map((n,i) => ({ id: i+1, name: n, categoryIds: [] }));
     }
     if (categories.length === 0) {
         categories = getDefaultCategories();
@@ -172,14 +181,14 @@ async function initSupabaseOnly() {
 
 function getDefaultCategories() {
     return [
-        { id: 1, name: 'Zapatos', type: 'calzado', department: 'unisex', icon: '👟', subcategories: ['Sneakers','Running','Casuales','Botas','Sandalias','Formales'], sortOrder: 1, active: true },
-        { id: 2, name: 'Playeras', type: 'prenda', department: 'unisex', icon: '👕', subcategories: ['Lisas','Estampadas','Polo'], sortOrder: 2, active: true },
-        { id: 3, name: 'Sudaderas', type: 'prenda', department: 'unisex', icon: '🧥', subcategories: ['Con capucha','Sin capucha'], sortOrder: 3, active: true },
-        { id: 4, name: 'Chaquetas', type: 'prenda', department: 'unisex', icon: '🧥', subcategories: ['Rompevientos','Mezclilla'], sortOrder: 4, active: true },
-        { id: 5, name: 'Jeans', type: 'prenda', department: 'unisex', icon: '👖', subcategories: ['Skinny','Straight','Relaxed'], sortOrder: 5, active: true },
-        { id: 6, name: 'Bermudas', type: 'prenda', department: 'unisex', icon: '🩳', subcategories: ['Deportivas','Casuales'], sortOrder: 6, active: true },
-        { id: 7, name: 'Pantalones', type: 'prenda', department: 'unisex', icon: '👖', subcategories: ['Formales','Deportivos'], sortOrder: 7, active: true },
-        { id: 8, name: 'Accesorios', type: 'accesorio', department: 'unisex', icon: '🎒', subcategories: ['Gorras','Calcetines','Bolsos','Cinturones'], sortOrder: 8, active: true }
+        { id: 1, name: 'Zapatos', type: 'calzado', department: 'unisex', icon: '👟', subcategories: ['Sneakers','Running','Casuales','Botas','Sandalias','Formales'], sizeIds: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15], sortOrder: 1, active: true },
+        { id: 2, name: 'Playeras', type: 'prenda', department: 'unisex', icon: '👕', subcategories: ['Lisas','Estampadas','Polo'], sizeIds: [16,17,18,19,20,21,22], sortOrder: 2, active: true },
+        { id: 3, name: 'Sudaderas', type: 'prenda', department: 'unisex', icon: '🧥', subcategories: ['Con capucha','Sin capucha'], sizeIds: [16,17,18,19,20,21,22], sortOrder: 3, active: true },
+        { id: 4, name: 'Chaquetas', type: 'prenda', department: 'unisex', icon: '🧥', subcategories: ['Rompevientos','Mezclilla'], sizeIds: [16,17,18,19,20,21,22], sortOrder: 4, active: true },
+        { id: 5, name: 'Jeans', type: 'prenda', department: 'unisex', icon: '👖', subcategories: ['Skinny','Straight','Relaxed'], sizeIds: [23,24,25,26,27,28,29,30], sortOrder: 5, active: true },
+        { id: 6, name: 'Bermudas', type: 'prenda', department: 'unisex', icon: '🩳', subcategories: ['Deportivas','Casuales'], sizeIds: [16,17,18,19,20,21,22], sortOrder: 6, active: true },
+        { id: 7, name: 'Pantalones', type: 'prenda', department: 'unisex', icon: '👖', subcategories: ['Formales','Deportivos'], sizeIds: [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37], sortOrder: 7, active: true },
+        { id: 8, name: 'Accesorios', type: 'accesorio', department: 'unisex', icon: '🎒', subcategories: ['Gorras','Calcetines','Bolsos','Cinturones'], sizeIds: [], sortOrder: 8, active: true }
     ];
 }
 

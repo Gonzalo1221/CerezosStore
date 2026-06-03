@@ -82,14 +82,12 @@ function renderBrandsPanel() {
             const cat = categories.find(c => c.id === cid);
             return cat ? `<span class="bc-rel-badge cat">${cat.icon||''} ${cat.name}</span>` : '';
         }).join('');
-        const sizeCount = (b.sizeIds||[]).length;
         const productCount = products.filter(p => p.brand === b.name).length;
-        const sizeSystemLabel = b.sizeSystem === 'clothing' ? 'Ropa' : 'Zapato';
         return `<div class="bc-brand-item">
             <div class="bc-brand-info">
                 <div class="bc-brand-name">${b.name}</div>
-                <div class="bc-brand-meta">${sizeSystemLabel} · ${productCount} productos</div>
-                <div class="bc-brand-rels">${catNames}${sizeCount > 0 ? `<span class="bc-rel-badge size">${sizeCount} tallas</span>` : ''}</div>
+                <div class="bc-brand-meta">${productCount} productos</div>
+                <div class="bc-brand-rels">${catNames}</div>
             </div>
             <div class="bc-brand-actions">
                 <button class="bc-action-btn edit" onclick="showBrandModal(${b.id})" title="Editar" ${!can('edit','brands') ? 'style="display:none"' : ''}><i class="bi bi-pencil"></i></button>
@@ -131,8 +129,20 @@ function renderSizesPanel() {
 }
 
 function renderSizeChip(s, cssClass) {
-    const linked = brands.filter(b => (b.sizeIds||[]).includes(s.id)).length;
-    return `<div class="bc-size-chip ${cssClass}" title="${linked} marca(s)">${s.label}${linked > 0 ? `<span class="bc-size-linked">${linked}</span>` : ''}<button class="bc-size-remove" onclick="deleteSize(${s.id})" ${!can('delete','sizes') ? 'style="display:none"' : ''}>&times;</button></div>`;
+    return `<div class="bc-size-chip ${cssClass}">${s.label}<button class="bc-size-remove" onclick="deleteSize(${s.id})" ${!can('delete','sizes') ? 'style="display:none"' : ''}>&times;</button></div>`;
+}
+
+function onCatTypeChange(catId) {
+    const type = document.getElementById('bcCatType')?.value || 'prenda';
+    const system = type === 'calzado' ? 'shoe' : 'clothing';
+    const catSizeIds = catId ? (categories.find(c => c.id === catId)?.sizeIds || []) : [];
+    const filteredSizes = sizes.filter(s => s.system === system);
+    const list = document.getElementById('bcCatSizeList');
+    if (!list) return;
+    list.innerHTML = filteredSizes.map(s => {
+        const checked = catSizeIds.includes(s.id) ? 'checked' : '';
+        return `<label class="bc-check-item"><input type="checkbox" value="${s.id}" ${checked} class="bc-size-check"><span class="bc-check-box"></span><span>${s.label}</span></label>`;
+    }).join('') || '<div style="color:var(--gray);font-size:12px;padding:8px;">No hay tallas para este sistema</div>';
 }
 
 // ============ CATEGORY MODALS ============
@@ -149,7 +159,7 @@ function showAddCategoryModal(department) {
         </div>
         <div class="bc-modal-input-group">
             <label>Tipo</label>
-            <select class="form-select" id="bcCatType">
+            <select class="form-select" id="bcCatType" onchange="onCatTypeChange()">
                 <option value="prenda">👕 Prenda</option>
                 <option value="calzado">👟 Calzado</option>
                 <option value="accesorio">🎒 Accesorio</option>
@@ -163,6 +173,10 @@ function showAddCategoryModal(department) {
             <label>Subcategorías (una por línea)</label>
             <textarea class="form-input" id="bcCatSubs" placeholder="Lisas&#10;Estampadas&#10;Polo" rows="4" style="resize:vertical;"></textarea>
         </div>
+        <div class="bc-modal-input-group">
+            <label>Tallas asignadas</label>
+            <div id="bcCatSizeList" class="bc-check-list" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
         <div class="bc-modal-actions">
             <button class="btn btn-secondary" onclick="hideModal('brandCatModal')">Cancelar</button>
             <button class="btn btn-primary" onclick="saveCategory('${department}')"><i class="bi bi-plus-lg"></i> Crear</button>
@@ -171,7 +185,7 @@ function showAddCategoryModal(department) {
     document.getElementById('brandCatModalTitle').textContent = 'Nueva Categoría';
     document.getElementById('brandCatModalBody').innerHTML = html;
     showModal('brandCatModal');
-    setTimeout(() => { const inp = document.getElementById('bcCatName'); if (inp) inp.focus(); }, 150);
+    setTimeout(() => { onCatTypeChange(); const inp = document.getElementById('bcCatName'); if (inp) inp.focus(); }, 150);
 }
 
 function showEditCategoryModal(catId) {
@@ -189,7 +203,7 @@ function showEditCategoryModal(catId) {
         </div>
         <div class="bc-modal-input-group">
             <label>Tipo</label>
-            <select class="form-select" id="bcCatType">
+            <select class="form-select" id="bcCatType" onchange="onCatTypeChange(${catId})">
                 <option value="prenda" ${cat.type==='prenda'?'selected':''}>👕 Prenda</option>
                 <option value="calzado" ${cat.type==='calzado'?'selected':''}>👟 Calzado</option>
                 <option value="accesorio" ${cat.type==='accesorio'?'selected':''}>🎒 Accesorio</option>
@@ -212,6 +226,10 @@ function showEditCategoryModal(catId) {
             <label>Subcategorías (una por línea)</label>
             <textarea class="form-input" id="bcCatSubs" rows="4" style="resize:vertical;">${subs}</textarea>
         </div>
+        <div class="bc-modal-input-group">
+            <label>Tallas asignadas</label>
+            <div id="bcCatSizeList" class="bc-check-list" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
         <div class="bc-modal-actions">
             <button class="btn btn-secondary" onclick="hideModal('brandCatModal')">Cancelar</button>
             <button class="btn btn-primary" onclick="updateCategory(${catId})"><i class="bi bi-check-lg"></i> Guardar</button>
@@ -220,7 +238,7 @@ function showEditCategoryModal(catId) {
     document.getElementById('brandCatModalTitle').textContent = 'Editar Categoría';
     document.getElementById('brandCatModalBody').innerHTML = html;
     showModal('brandCatModal');
-    setTimeout(() => { const inp = document.getElementById('bcCatName'); if (inp) { inp.focus(); inp.select(); } }, 150);
+    setTimeout(() => { onCatTypeChange(catId); const inp = document.getElementById('bcCatName'); if (inp) { inp.focus(); inp.select(); } }, 150);
 }
 
 async function saveCategory(department) {
@@ -231,10 +249,17 @@ async function saveCategory(department) {
     const icon = document.getElementById('bcCatIcon')?.value || '🏷️';
     const subsRaw = (document.getElementById('bcCatSubs')?.value || '').trim();
     const subcategories = subsRaw ? subsRaw.split('\n').map(s => s.trim()).filter(Boolean) : [];
+    const sizeIds = Array.from(document.querySelectorAll('#bcCatSizeList .bc-size-check:checked')).map(cb => parseInt(cb.value));
     const newId = categories.length > 0 ? Math.max(...categories.map(c => c.id || 0)) + 1 : 1;
     const maxOrder = categories.reduce((max, c) => Math.max(max, c.sortOrder || 0), 0);
-    categories.push({ id: newId, name, type, department, icon, subcategories, sortOrder: maxOrder + 1, active: true });
-    await saveCategories();
+    categories.push({ id: newId, name, type, department, icon, subcategories, sizeIds, sortOrder: maxOrder + 1, active: true });
+    try {
+        await saveCategories();
+    } catch (e) {
+        categories = categories.filter(c => c.id !== newId);
+        showToast('Error al guardar: ' + e.message, 'error');
+        return;
+    }
     hideModal('brandCatModal');
     populateBrandCategoryDropdowns();
     renderBrandsCategories();
@@ -247,13 +272,21 @@ async function updateCategory(catId) {
     const name = (document.getElementById('bcCatName')?.value || '').trim();
     if (!name) { showToast('Ingresa un nombre', 'error'); return; }
     if (categories.some(c => c.id !== catId && c.name.toLowerCase() === name.toLowerCase())) { showToast('Ya existe ese nombre', 'error'); return; }
+    const prev = { name: cat.name, type: cat.type, department: cat.department, icon: cat.icon, subcategories: [...(cat.subcategories || [])], sizeIds: [...(cat.sizeIds || [])] };
     cat.name = name;
     cat.type = document.getElementById('bcCatType')?.value || cat.type;
     cat.department = document.getElementById('bcCatDept')?.value || cat.department;
     cat.icon = document.getElementById('bcCatIcon')?.value || cat.icon;
     const subsRaw = (document.getElementById('bcCatSubs')?.value || '').trim();
     cat.subcategories = subsRaw ? subsRaw.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    await saveCategories();
+    cat.sizeIds = Array.from(document.querySelectorAll('#bcCatSizeList .bc-size-check:checked')).map(cb => parseInt(cb.value));
+    try {
+        await saveCategories();
+    } catch (e) {
+        Object.assign(cat, prev);
+        showToast('Error al guardar: ' + e.message, 'error');
+        return;
+    }
     hideModal('brandCatModal');
     populateBrandCategoryDropdowns();
     renderBrandsCategories();
@@ -302,8 +335,6 @@ function showBrandModal(brandId) {
     const title = isEdit ? 'Editar Marca' : 'Nueva Marca';
     const name = brand ? brand.name : '';
     const selCats = brand ? (brand.categoryIds || []) : [];
-    const selSizes = brand ? (brand.sizeIds || []) : [];
-    const sizeSystem = brand ? (brand.sizeSystem || 'shoe') : 'shoe';
 
     const catCheckboxes = categories.filter(c => c.active !== false).map(c => {
         const checked = selCats.includes(c.id) ? 'checked' : '';
@@ -311,16 +342,6 @@ function showBrandModal(brandId) {
             <input type="checkbox" value="${c.id}" ${checked} class="bc-cat-check">
             <span class="bc-check-box"></span>
             <span>${c.icon||'🏷️'} ${c.name}</span>
-        </label>`;
-    }).join('');
-
-    const filteredSizes = sizes.filter(s => s.system === sizeSystem);
-    const sizeCheckboxes = filteredSizes.map(s => {
-        const checked = selSizes.includes(s.id) ? 'checked' : '';
-        return `<label class="bc-check-item">
-            <input type="checkbox" value="${s.id}" ${checked} class="bc-size-check">
-            <span class="bc-check-box"></span>
-            <span>${s.label}</span>
         </label>`;
     }).join('');
 
@@ -333,13 +354,6 @@ function showBrandModal(brandId) {
             <label>Nombre de la marca</label>
             <input type="text" class="form-input" id="brandCatNameInput" value="${name}" placeholder="Ej: Nike, Adidas..." maxlength="50">
         </div>
-        <div class="bc-modal-input-group" style="margin-bottom:20px;">
-            <label>Sistema de tallas</label>
-            <select class="form-select" id="bcBrandSizeSystem" onchange="onBrandSizeSystemChange(${brandId || 'null'})">
-                <option value="shoe" ${sizeSystem==='shoe'?'selected':''}>👟 Zapato (36-43)</option>
-                <option value="clothing" ${sizeSystem==='clothing'?'selected':''}>👕 Ropa (XS-XXXL)</option>
-            </select>
-        </div>
         <div class="bc-modal-section">
             <div class="bc-modal-section-header">
                 <i class="bi bi-tag-fill" style="color:#6366f1;"></i>
@@ -350,16 +364,6 @@ function showBrandModal(brandId) {
                 ${catCheckboxes || '<div class="bc-empty" style="padding:12px;"><i class="bi bi-inbox"></i> No hay categorías creadas</div>'}
             </div>
         </div>
-        <div class="bc-modal-section">
-            <div class="bc-modal-section-header">
-                <i class="bi bi-rulers" style="color:#10b981;"></i>
-                <span>Tallas disponibles</span>
-                <span class="bc-check-count" id="sizeCheckCount">${selSizes.length}</span>
-            </div>
-            <div class="bc-check-list" id="sizeCheckList">
-                ${sizeCheckboxes || '<div class="bc-empty" style="padding:12px;"><i class="bi bi-inbox"></i> No hay tallas para este sistema</div>'}
-            </div>
-        </div>
         <div class="bc-modal-actions">
             <button class="btn btn-secondary" onclick="hideModal('brandCatModal')">Cancelar</button>
             <button class="btn btn-primary" onclick="saveBrandModal(${brandId || 'null'})"><i class="bi bi-check-lg"></i> ${isEdit ? 'Guardar' : 'Crear Marca'}</button>
@@ -368,7 +372,7 @@ function showBrandModal(brandId) {
     document.getElementById('brandCatModalTitle').textContent = title;
     document.getElementById('brandCatModalBody').innerHTML = html;
 
-    document.querySelectorAll('.bc-cat-check, .bc-size-check').forEach(cb => {
+    document.querySelectorAll('.bc-cat-check').forEach(cb => {
         cb.addEventListener('change', updateBrandCheckCounts);
     });
 
@@ -376,39 +380,16 @@ function showBrandModal(brandId) {
     setTimeout(() => { const inp = document.getElementById('brandCatNameInput'); if (inp) inp.focus(); }, 150);
 }
 
-function onBrandSizeSystemChange(brandId) {
-    const sizeSystem = document.getElementById('bcBrandSizeSystem')?.value || 'shoe';
-    const filteredSizes = sizes.filter(s => s.system === sizeSystem);
-    const list = document.getElementById('sizeCheckList');
-    if (!list) return;
-    list.innerHTML = filteredSizes.map(s => {
-        return `<label class="bc-check-item">
-            <input type="checkbox" value="${s.id}" class="bc-size-check">
-            <span class="bc-check-box"></span>
-            <span>${s.label}</span>
-        </label>`;
-    }).join('') || '<div class="bc-empty" style="padding:12px;"><i class="bi bi-inbox"></i> No hay tallas para este sistema</div>';
-    list.querySelectorAll('.bc-size-check').forEach(cb => {
-        cb.addEventListener('change', updateBrandCheckCounts);
-    });
-    updateBrandCheckCounts();
-}
-
 function updateBrandCheckCounts() {
     const catCount = document.querySelectorAll('.bc-cat-check:checked').length;
-    const sizeCount = document.querySelectorAll('.bc-size-check:checked').length;
     const catEl = document.getElementById('catCheckCount');
-    const sizeEl = document.getElementById('sizeCheckCount');
     if (catEl) catEl.textContent = catCount;
-    if (sizeEl) sizeEl.textContent = sizeCount;
 }
 
 async function saveBrandModal(brandId) {
     const name = (document.getElementById('brandCatNameInput')?.value || '').trim();
     if (!name) { showToast('Ingresa un nombre', 'error'); return; }
     const categoryIds = Array.from(document.querySelectorAll('.bc-cat-check:checked')).map(cb => parseInt(cb.value));
-    const sizeIds = Array.from(document.querySelectorAll('.bc-size-check:checked')).map(cb => parseInt(cb.value));
-    const sizeSystem = document.getElementById('bcBrandSizeSystem')?.value || 'shoe';
 
     if (brandId) {
         const brand = brands.find(b => b.id === brandId);
@@ -416,19 +397,32 @@ async function saveBrandModal(brandId) {
             if (brands.some(b => b.id !== brandId && b.name.toLowerCase() === name.toLowerCase())) {
                 showToast('Ya existe una marca con ese nombre', 'error'); return;
             }
+            const prev = { name: brand.name, categoryIds: [...(brand.categoryIds || [])] };
             brand.name = name;
             brand.categoryIds = categoryIds;
-            brand.sizeIds = sizeIds;
-            brand.sizeSystem = sizeSystem;
+            try {
+                await saveBrands();
+            } catch (e) {
+                Object.assign(brand, prev);
+                showToast('Error al guardar: ' + e.message, 'error');
+                return;
+            }
         }
     } else {
         if (brands.some(b => b.name.toLowerCase() === name.toLowerCase())) {
             showToast('Ya existe una marca con ese nombre', 'error'); return;
         }
         const newId = brands.length > 0 ? Math.max(...brands.map(b => b.id || 0)) + 1 : 1;
-        brands.push({ id: newId, name, categoryIds, sizeIds, sizeSystem });
+        const newBrand = { id: newId, name, categoryIds };
+        brands.push(newBrand);
+        try {
+            await saveBrands();
+        } catch (e) {
+            brands = brands.filter(b => b.id !== newId);
+            showToast('Error al guardar: ' + e.message, 'error');
+            return;
+        }
     }
-    await saveBrands();
     hideModal('brandCatModal');
     populateBrandCategoryDropdowns();
     renderBrandsCategories();
@@ -520,12 +514,12 @@ async function addSize() {
 async function deleteSize(sizeId) {
     const size = sizes.find(s => s.id === sizeId);
     if (!size) return;
-    const linkedBrands = brands.filter(b => (b.sizeIds || []).includes(sizeId));
+    const linkedProducts = products.filter(p => (p.sizeIds || []).includes(sizeId)).length;
     const html = `
         <div style="text-align:center;">
             <div class="bc-modal-icon danger"><i class="bi bi-trash3"></i></div>
             <div class="bc-modal-title">Eliminar Talla</div>
-            <div class="bc-modal-subtitle">¿Eliminar talla "<strong>${size.label}</strong>"?${linkedBrands.length > 0 ? ` Se desasociará de ${linkedBrands.length} marca(s).` : ''}</div>
+            <div class="bc-modal-subtitle">¿Eliminar talla "<strong>${size.label}</strong>"?${linkedProducts > 0 ? ` Se eliminará de ${linkedProducts} producto(s).` : ''}</div>
         </div>
         <div class="bc-modal-actions" style="justify-content:center;">
             <button class="btn btn-secondary" onclick="hideModal('brandCatModal')">Cancelar</button>
@@ -539,18 +533,19 @@ async function deleteSize(sizeId) {
 
 async function confirmDeleteSize(sizeId) {
     sizes = sizes.filter(s => s.id !== sizeId);
-    brands.forEach(b => { b.sizeIds = (b.sizeIds || []).filter(sid => sid !== sizeId); });
+    categories.forEach(c => { c.sizeIds = (c.sizeIds || []).filter(sid => sid !== sizeId); });
+    products.forEach(p => {
+        p.sizeIds = (p.sizeIds || []).filter(sid => sid !== sizeId);
+        if (p.stocks) delete p.stocks[String(sizeId)];
+    });
     try {
         await apiDelete('sizes', sizeId);
     } catch (e) {
         console.warn('apiDelete sizes failed, saving array:', e);
         await saveSizes();
     }
-    try {
-        await saveBrands();
-    } catch (e) {
-        console.warn('saveBrands after size delete failed:', e);
-    }
+    try { await saveCategories(); } catch (e) { console.warn('saveCategories:', e); }
+    try { await saveProducts(); } catch (e) { console.warn('saveProducts:', e); }
     hideModal('brandCatModal');
     renderBrandsCategories();
     showToast('Talla eliminada', 'success');

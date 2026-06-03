@@ -5,8 +5,8 @@ let users = [];
 let clients = [];
 let creditPayments = [];
 let quotes = [];
-let brands = [];      // { id, name, categoryIds: [], sizeIds: [], sizeSystem }
-let categories = [];  // { id, name, type, department, subcategories: [], icon, sortOrder, active }
+let brands = [];      // { id, name, categoryIds: [] }
+let categories = [];  // { id, name, type, department, subcategories: [], icon, sortOrder, active, sizeIds: [] }
 let sizes = [];       // { id, value, label, system: 'shoe'|'clothing' }
 let cart = [];
 let currentPage = { inventory: 1, sales: 1, quotes: 1 };
@@ -17,6 +17,28 @@ let pendingDeleteType = null;
 let currentAbonoSaleId = null;
 let currentEditClientId = null;
 let currentUser = null;
+
+// ============ PRODUCT HELPERS (V2: multi-size) ============
+function getTotalStock(p) {
+    if (!p.stocks || typeof p.stocks !== 'object') return 0;
+    return Object.values(p.stocks).reduce((a, b) => a + (parseInt(b) || 0), 0);
+}
+function getStockForSize(p, sizeId) {
+    if (!p.stocks || typeof p.stocks !== 'object') return 0;
+    return parseInt(p.stocks[String(sizeId)]) || 0;
+}
+function setStockForSize(p, sizeId, qty) {
+    if (!p.stocks || typeof p.stocks !== 'object') p.stocks = {};
+    p.stocks[String(sizeId)] = Math.max(0, parseInt(qty) || 0);
+}
+function getSizeLabel(sizeId) {
+    const s = sizes.find(sz => Number(sz.id) === Number(sizeId));
+    return s ? s.label : String(sizeId);
+}
+function getSizeValue(sizeId) {
+    const s = sizes.find(sz => Number(sz.id) === Number(sizeId));
+    return s ? s.value : String(sizeId);
+}
 
 // ============ KEY MAPPING (camelCase ↔ snake_case) ============
 function snakeToCamel(str) {

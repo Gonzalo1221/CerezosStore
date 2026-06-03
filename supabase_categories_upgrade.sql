@@ -8,6 +8,7 @@ ALTER TABLE categories ADD COLUMN IF NOT EXISTS subcategories JSONB DEFAULT '[]'
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT '🏷️';
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS size_ids JSONB DEFAULT '[]';
 
 -- 2. Extender tabla sizes con sistema
 ALTER TABLE sizes ADD COLUMN IF NOT EXISTS system TEXT DEFAULT 'shoe';
@@ -18,6 +19,7 @@ ALTER TABLE brands ADD COLUMN IF NOT EXISTS size_system TEXT DEFAULT 'shoe';
 -- 4. Extender tabla products
 ALTER TABLE products ADD COLUMN IF NOT EXISTS department TEXT DEFAULT 'unisex';
 ALTER TABLE products ADD COLUMN IF NOT EXISTS subcategory TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS size_id BIGINT;
 
 -- 5. Migrar datos existentes
 UPDATE categories SET type = 'prenda', department = 'unisex' WHERE type IS NULL;

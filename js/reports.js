@@ -1,6 +1,7 @@
 // ============ REPORTS ============
-function findSaleProduct(name, price) {
-    return products.find(p => p.name === name && Math.abs(p.price - price) < 0.01) || products.find(p => p.name === name);
+function findSaleProduct(item) {
+    if (item.productId) return products.find(p => p.id === item.productId) || null;
+    return products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01) || products.find(p => p.name === item.name);
 }
 
 function renderReports() {
@@ -17,7 +18,7 @@ function renderReports() {
     
     sales.forEach(s => {
         s.items.forEach(si => {
-            const product = findSaleProduct(si.name, si.price);
+            const product = findSaleProduct(si);
             const cost = product ? product.cost * si.qty : 0;
             const itemRevenue = si.price * si.qty;
             const itemProfit = itemRevenue - cost;

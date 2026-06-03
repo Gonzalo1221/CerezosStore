@@ -62,7 +62,7 @@ function renderDashboard() {
     });
     let topList = Object.values(salesByProduct).sort((a, b) => b.qty - a.qty).slice(0, 5);
     if (topList.length === 0) {
-        topList = products.filter(p => p.stock > 0).sort((a, b) => b.price - a.price).slice(0, 5);
+        topList = products.filter(p => getTotalStock(p) > 0).sort((a, b) => b.price - a.price).slice(0, 5);
     }
     topEl.innerHTML = topList.map((p, i) => {
         const brandCat = p.brand ? `${p.brand} · ${p.category}` : (p.qty ? `${p.qty} vendidos` : '');

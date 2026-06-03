@@ -4,135 +4,141 @@ function renderPosProducts() {
     const catFilter = document.getElementById('posCategoryFilter')?.value || '';
     
     let filtered = products.filter(p => {
-        const matchSearch = p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search) || p.brand.toLowerCase().includes(search);
+        const matchSearch = p.name.toLowerCase().includes(search) || (p.sku||'').toLowerCase().includes(search) || p.brand.toLowerCase().includes(search);
         const matchCat = !catFilter || p.category === catFilter;
         return matchSearch && matchCat;
     });
 
-    // Group by product model
-    const groups = {};
-    filtered.forEach(p => {
-        const key = getProductGroupId(p);
-        if (!groups[key]) groups[key] = { name: p.name, brand: p.brand, category: p.category, price: p.price, sizes: [], totalStock: 0 };
-        groups[key].sizes.push(p);
-        groups[key].totalStock += p.stock;
-    });
-
     const grid = document.getElementById('posProductsGrid');
-    grid.innerHTML = Object.values(groups).map(g => {
-        const canSellWithoutStock = g.sizes.some(s => s.sellWithoutStock);
-        const allOut = g.totalStock === 0 && !canSellWithoutStock;
-        const availSizes = g.sizes.filter(s => s.stock > 0 || s.sellWithoutStock).map(s => s.size).join(', ');
-        const hasAvail = g.totalStock > 0 || canSellWithoutStock;
+    grid.innerHTML = filtered.map(p => {
+        const total = getTotalStock(p);
+        const canSell = total > 0 || p.sellWithoutStock;
+        const sizeCount = (p.sizeIds || []).filter(sid => getStockForSize(p, sid) > 0 || p.sellWithoutStock).length;
+        const sizeLabels = (p.sizeIds || []).map(sid => getSizeLabel(sid)).join(', ');
+        const singleSize = p.sizeIds && p.sizeIds.length === 1;
+        const clickAction = !canSell ? '' : (singleSize ? `addToCartBySize(${p.id}, ${p.sizeIds[0]})` : `showSizePicker(${p.id})`);
         return `
-        <div class="pos-product-card ${allOut ? 'pos-out-of-stock' : ''}" onclick="${allOut ? '' : (g.sizes.length === 1 && (g.sizes[0].stock > 0 || g.sizes[0].sellWithoutStock) ? `addToCart(${g.sizes[0].id})` : `showSizePicker('${g.name.replace(/'/g, "\\'")}', ${g.price}, '${g.category}')`)}" style="${allOut ? 'opacity:0.55;cursor:default;' : ''}">
-            ${g.totalStock === 0 ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
-            <div class="pos-thumb">${getCategoryIcon(g.category)}</div>
-            <h4>${g.name}</h4>
-            <div class="pos-price">$${g.price.toLocaleString()}</div>
-            <div class="pos-sku">${g.brand} ${g.sizes.length > 0 ? '· Tallas: ' + g.sizes.map(s => s.size).join(', ') : ''}</div>
-            ${hasAvail ? `<div class="pos-sku" style="color:var(--success);margin-top:2px;">${g.sizes.filter(s => s.stock > 0 || s.sellWithoutStock).length} tallas disponibles</div>` : ''}
+        <div class="pos-product-card ${!canSell ? 'pos-out-of-stock' : ''}" onclick="${clickAction}" style="${!canSell ? 'opacity:0.55;cursor:default;' : ''}">
+            ${total === 0 ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
+            <div class="pos-thumb">${getCategoryIcon(p.category)}</div>
+            <h4>${p.name}</h4>
+            <div class="pos-price">$${p.price.toLocaleString()}</div>
+            <div class="pos-sku">${p.brand} ${sizeLabels ? '· Tallas: ' + sizeLabels : ''}</div>
+            ${canSell ? `<div class="pos-sku" style="color:var(--success);margin-top:2px;">${sizeCount} tallas disponibles</div>` : ''}
         </div>`;
     }).join('') || '<div class="empty-state" style="grid-column:1/-1;"><i class="bi bi-search"></i><h3>No se encontraron productos</h3></div>';
     
-    // Store filtered groups and raw products for size picker
-    window._posGroups = groups;
     window._posFiltered = filtered;
 }
 
 function filterPosProducts() { renderPosProducts(); }
 
-let _pickerGroupName = '';
+let _pickerProduct = null;
 let _pickerSizes = [];
 let _pickerQty = 1;
-let _pickerSelectedSize = null;
+let _pickerSelectedSizeId = null;
 
-function showSizePicker(name, price, category) {
-    const filtered = window._posFiltered || products;
-    const groupProducts = filtered.filter(p => p.name === name && p.price === price);
-    _pickerGroupName = name;
-    _pickerSizes = groupProducts;
-    _pickerSelectedSize = null;
+function showSizePicker(productId) {
+    const p = products.find(pr => pr.id === productId);
+    if (!p) return;
+    _pickerProduct = p;
+    _pickerSelectedSizeId = null;
     _pickerQty = 1;
-    document.getElementById('sizePickerTitle').textContent = name;
+    document.getElementById('sizePickerTitle').textContent = p.name;
     const grid = document.getElementById('sizePickerGrid');
-    grid.innerHTML = groupProducts.map(p => {
-        const out = p.stock === 0 && !p.sellWithoutStock;
+    grid.innerHTML = (p.sizeIds || []).map(sid => {
+        const stock = getStockForSize(p, sid);
+        const label = getSizeLabel(sid);
+        const out = stock === 0 && !p.sellWithoutStock;
         return `
-            <div class="pos-product-card ${out ? 'pos-out-of-stock' : ''}" onclick="${out ? '' : `selectPickerSize(${p.id})`}" id="pickerSize-${p.id}" style="padding:12px 8px;cursor:${out ? 'default' : 'pointer'};${out ? 'opacity:0.55;' : ''}border:2px solid transparent;">
+            <div class="pos-product-card ${out ? 'pos-out-of-stock' : ''}" onclick="${out ? '' : `selectPickerSize(${sid})`}" id="pickerSize-${sid}" style="padding:12px 8px;cursor:${out ? 'default' : 'pointer'};${out ? 'opacity:0.55;' : ''}border:2px solid transparent;">
                 ${out ? '<div class="pos-stock-badge">AGOTADO</div>' : ''}
-                <div style="font-size:24px;font-weight:800;color:var(--primary);">${p.size}</div>
-                <div style="font-size:10px;color:var(--gray);margin-top:4px;">${p.stock} uds</div>
+                <div style="font-size:24px;font-weight:800;color:var(--primary);">${label}</div>
+                <div style="font-size:10px;color:var(--gray);margin-top:4px;">${stock} uds</div>
             </div>`;
     }).join('');
     document.getElementById('sizePickerQty').style.display = 'none';
     showModal('sizePickerModal');
 }
 
-function selectPickerSize(id) {
-    _pickerSelectedSize = id;
+function selectPickerSize(sizeId) {
+    _pickerSelectedSizeId = sizeId;
     _pickerQty = 1;
     document.querySelectorAll('#sizePickerGrid .pos-product-card').forEach(el => el.style.borderColor = 'transparent');
-    document.getElementById('pickerSize-' + id).style.borderColor = 'var(--primary)';
-    const p = _pickerSizes.find(s => s.id === id);
-    document.getElementById('sizePickerSelected').textContent = 'Talla ' + p.size + ' · $' + p.price.toLocaleString();
+    const el = document.getElementById('pickerSize-' + sizeId);
+    if (el) el.style.borderColor = 'var(--primary)';
+    const label = getSizeLabel(sizeId);
+    document.getElementById('sizePickerSelected').textContent = 'Talla ' + label + ' · $' + _pickerProduct.price.toLocaleString();
     document.getElementById('sizePickerQtyVal').textContent = '1';
     document.getElementById('sizePickerQty').style.display = 'block';
 }
 
 function sizePickerQty(delta) {
     _pickerQty = Math.max(1, _pickerQty + delta);
-    const p = _pickerSizes.find(s => s.id === _pickerSelectedSize);
-    if (p && !p.sellWithoutStock) _pickerQty = Math.min(_pickerQty, p.stock);
+    if (_pickerProduct && !_pickerProduct.sellWithoutStock) {
+        _pickerQty = Math.min(_pickerQty, getStockForSize(_pickerProduct, _pickerSelectedSizeId));
+    }
     document.getElementById('sizePickerQtyVal').textContent = _pickerQty;
 }
 
 function sizePickerAdd() {
-    if (!_pickerSelectedSize) return;
-    const p = _pickerSizes.find(s => s.id === _pickerSelectedSize);
-    if (!p) return;
+    if (!_pickerSelectedSizeId || !_pickerProduct) return;
+    const p = _pickerProduct;
+    const stock = getStockForSize(p, _pickerSelectedSizeId);
+    const label = getSizeLabel(_pickerSelectedSizeId);
     for (let i = 0; i < _pickerQty; i++) {
-        const existing = cart.find(c => c.productId === p.id);
+        const key = p.id + '-' + _pickerSelectedSizeId;
+        const existing = cart.find(c => c.key === key);
         if (existing) {
-            if (!p.sellWithoutStock && existing.qty >= p.stock) break;
+            if (!p.sellWithoutStock && existing.qty >= stock) break;
             existing.qty++;
         } else {
-            cart.push({ productId: p.id, name: p.name, price: p.price, sku: p.sku, qty: 1, icon: getCategoryIcon(p.category), size: p.size });
+            cart.push({ key, productId: p.id, sizeId: _pickerSelectedSizeId, name: p.name, price: p.price, sku: p.sku, qty: 1, icon: getCategoryIcon(p.category), size: label });
         }
     }
     renderCart();
     renderPosProducts();
     hideModal('sizePickerModal');
-    showToast(_pickerQty + 'x ' + p.name + ' (Talla ' + p.size + ') agregado', 'success');
+    showToast(_pickerQty + 'x ' + p.name + ' (Talla ' + label + ') agregado', 'success');
 }
 
-function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product || (product.stock === 0 && !product.sellWithoutStock)) return;
-    
-    const existing = cart.find(c => c.productId === productId);
+function addToCartBySize(productId, sizeId) {
+    const p = products.find(pr => pr.id === productId);
+    if (!p) return;
+    const stock = getStockForSize(p, sizeId);
+    if (stock === 0 && !p.sellWithoutStock) return;
+    const key = p.id + '-' + sizeId;
+    const existing = cart.find(c => c.key === key);
     if (existing) {
-        if (!product.sellWithoutStock && existing.qty >= product.stock) { showToast('No hay suficiente stock', 'error'); return; }
+        if (!p.sellWithoutStock && existing.qty >= stock) { showToast('No hay suficiente stock', 'error'); return; }
         existing.qty++;
     } else {
-        cart.push({ productId, name: product.name, price: product.price, sku: product.sku, qty: 1, icon: getCategoryIcon(product.category) });
+        const label = getSizeLabel(sizeId);
+        cart.push({ key, productId: p.id, sizeId, name: p.name, price: p.price, sku: p.sku, qty: 1, icon: getCategoryIcon(p.category), size: label });
     }
     renderCart();
     renderPosProducts();
 }
 
-function updateCartQty(productId, delta) {
-    const item = cart.find(c => c.productId === productId);
-    if (!item) return;
+function addToCart(productId) {
     const product = products.find(p => p.id === productId);
+    if (!product || (getTotalStock(product) === 0 && !product.sellWithoutStock)) return;
+    if (product.sizeIds && product.sizeIds.length > 1) { showSizePicker(productId); return; }
+    if (product.sizeIds && product.sizeIds.length === 1) { addToCartBySize(productId, product.sizeIds[0]); return; }
+}
+
+function updateCartQty(key, delta) {
+    const item = cart.find(c => c.key === key);
+    if (!item) return;
+    const p = products.find(pr => pr.id === item.productId);
     item.qty += delta;
-    if (item.qty <= 0) { cart = cart.filter(c => c.productId !== productId); }
-    else if (product && !product.sellWithoutStock && item.qty > product.stock) { item.qty = product.stock; showToast('Stock máximo alcanzado', 'error'); }
+    if (item.qty <= 0) { cart = cart.filter(c => c.key !== key); }
+    else if (p && !p.sellWithoutStock && item.qty > getStockForSize(p, item.sizeId)) { item.qty = getStockForSize(p, item.sizeId); showToast('Stock máximo alcanzado', 'error'); }
     renderCart();
 }
 
-function removeFromCart(productId) {
-    cart = cart.filter(c => c.productId !== productId);
+function removeFromCart(key) {
+    cart = cart.filter(c => c.key !== key);
     renderCart();
 }
 
@@ -191,15 +197,15 @@ function renderCart() {
             <div class="ci-icon">${c.icon}</div>
             <div class="ci-info">
                 <h4>${c.name}</h4>
-                <small>${c.sku}</small>
+                <small>${c.sku}${c.size ? ' · ' + c.size : ''}</small>
             </div>
             <div class="qty-control">
-                <button class="qty-btn" onclick="updateCartQty(${c.productId}, -1)">−</button>
+                <button class="qty-btn" onclick="updateCartQty('${c.key}', -1)">−</button>
                 <span class="qty-val">${c.qty}</span>
-                <button class="qty-btn" onclick="updateCartQty(${c.productId}, 1)">+</button>
+                <button class="qty-btn" onclick="updateCartQty('${c.key}', 1)">+</button>
             </div>
             <span class="ci-price">$${(c.price * c.qty).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-            <button class="ci-remove" onclick="removeFromCart(${c.productId})"><i class="bi bi-x"></i></button>
+            <button class="ci-remove" onclick="removeFromCart('${c.key}')"><i class="bi bi-x"></i></button>
         </div>
     `).join('');
 
@@ -393,16 +399,19 @@ function editSale(saleId) {
     
     // Restore stock for this sale so products are available again
     (sale.items || []).forEach(item => {
-        const product = products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01);
-        if (product) product.stock = (product.stock || 0) + item.qty;
+        const product = products.find(p => p.id === item.productId);
+        if (product && item.sizeId) {
+            setStockForSize(product, item.sizeId, getStockForSize(product, item.sizeId) + item.qty);
+        }
     });
     
     // Rebuild cart from sale items
     cart = [];
     (sale.items || []).forEach(item => {
-        const product = products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01);
+        const product = products.find(p => p.id === item.productId);
         if (product) {
-            cart.push({ productId: product.id, name: item.name, price: item.price, sku: product.sku, qty: item.qty, icon: getCategoryIcon(product.category) });
+            const label = item.size || getSizeLabel(item.sizeId);
+            cart.push({ key: item.productId + '-' + item.sizeId, productId: item.productId, sizeId: item.sizeId, name: item.name, price: item.price, sku: item.sku || product.sku, qty: item.qty, icon: getCategoryIcon(product.category), size: label });
         }
     });
     
@@ -441,8 +450,10 @@ function cancelEditSale() {
     if (editingSaleId && editingSaleBackup) {
         // Re-deduct stock that was restored
         (editingSaleBackup.items || []).forEach(item => {
-            const product = products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01);
-            if (product) product.stock = Math.max(0, (product.stock || 0) - item.qty);
+            const product = products.find(p => p.id === item.productId);
+            if (product && item.sizeId) {
+                setStockForSize(product, item.sizeId, Math.max(0, getStockForSize(product, item.sizeId) - item.qty));
+            }
         });
         renderPosProducts();
         cart = [];
@@ -551,7 +562,7 @@ function completeSale() {
         date: isEditing ? (editingSaleBackup ? editingSaleBackup.date : new Date().toISOString().slice(0, 16).replace('T', ' ')) : new Date().toISOString().slice(0, 16).replace('T', ' '),
         client: clientName,
         clientId: client ? client.id : null,
-        items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
+        items: cart.map(c => ({ productId: c.productId, sizeId: c.sizeId || null, name: c.name, size: c.size || '', sku: c.sku || '', qty: c.qty, price: c.price })),
         subtotal, tax, total,
         payMethod,
         notes,
@@ -567,10 +578,12 @@ function completeSale() {
         creditInstallmentValue
     };
 
-    // Update stock (already restored before edit, now deduct new qty)
+    // Update stock
     cart.forEach(c => {
         const product = products.find(p => p.id === c.productId);
-        if (product) product.stock = Math.max(0, product.stock - c.qty);
+        if (product && c.sizeId) {
+            setStockForSize(product, c.sizeId, getStockForSize(product, c.sizeId) - c.qty);
+        }
     });
     
     if (isEditing) {
@@ -580,7 +593,7 @@ function completeSale() {
         sales.push(sale);
     }
     saveSales();
-    saveProducts();
+    saveProducts().catch(e => console.warn('saveProducts:', e));
 
     // Show receipt
     showSaleReceipt(sale);
@@ -630,7 +643,7 @@ function createQuote() {
         date: new Date().toISOString().slice(0, 16).replace('T', ' '),
         client: clientName,
         clientId: client ? client.id : null,
-        items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
+        items: cart.map(c => ({ productId: c.productId, sizeId: c.sizeId || null, name: c.name, size: c.size || '', sku: c.sku || '', qty: c.qty, price: c.price })),
         subtotal, tax, total, notes,
         status: 'Vigente'
     };
@@ -652,9 +665,10 @@ function createQuote() {
 function showQuoteReceipt(quote) {
     const receiptEl = document.getElementById('saleReceipt');
     lastShownSaleId = quote.id;
-    const itemsHtml = (quote.items || []).map(i =>
-        `<tr><td style="padding:2px 0;">${i.name}</td><td style="text-align:right;">${i.qty}x</td><td style="text-align:right;">$${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0})}</td></tr>`
-    ).join('');
+    const itemsHtml = (quote.items || []).map(i => {
+        const sizeLabel = i.size ? ' <span style="color:var(--gray);font-size:9px;">' + i.size + '</span>' : '';
+        return `<tr><td style="padding:2px 0;">${i.name}${sizeLabel}</td><td style="text-align:right;">${i.qty}x</td><td style="text-align:right;">$${(i.price * i.qty).toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0})}</td></tr>`;
+    }).join('');
     receiptEl.innerHTML = `
         <div class="receipt" style="font-size:11px;">
             <div style="text-align:center;font-size:13px;font-weight:800;color:var(--info);margin-bottom:4px;">COTIZACION</div>
@@ -693,9 +707,12 @@ function convertQuoteToSale(quoteId) {
     // Rebuild cart from quote items
     cart = [];
     (quote.items || []).forEach(item => {
-        const product = products.find(p => p.name === item.name && Math.abs(p.price - item.price) < 0.01);
-        if (product && (product.stock > 0 || product.sellWithoutStock)) {
-            cart.push({ productId: product.id, name: item.name, price: item.price, sku: product.sku, qty: Math.min(item.qty, product.sellWithoutStock ? item.qty : product.stock), icon: getCategoryIcon(product.category) });
+        const product = products.find(p => p.id === item.productId);
+        if (product && (getTotalStock(product) > 0 || product.sellWithoutStock)) {
+            const stock = item.sizeId ? getStockForSize(product, item.sizeId) : getTotalStock(product);
+            const qty = Math.min(item.qty, product.sellWithoutStock ? item.qty : stock);
+            const label = item.size || (item.sizeId ? getSizeLabel(item.sizeId) : '');
+            cart.push({ key: item.productId + '-' + (item.sizeId || 0), productId: item.productId, sizeId: item.sizeId || null, name: item.name, price: item.price, sku: item.sku || product.sku, qty, icon: getCategoryIcon(product.category), size: label });
         }
     });
     renderCart();
@@ -727,7 +744,7 @@ function renderQuotes() {
     
     const tbody = document.getElementById('quotesTableBody');
     tbody.innerHTML = pageItems.map(q => {
-        const itemsSummary = q.items.map(i => `${i.qty}x ${i.name}`).join(', ');
+        const itemsSummary = q.items.map(i => `${i.qty}x ${i.name}${i.size ? ' [' + i.size + ']' : ''}`).join(', ');
         return `
             <tr>
                 <td style="font-weight:600;color:var(--info);">${q.folio}</td>
