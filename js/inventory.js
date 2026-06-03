@@ -125,7 +125,165 @@ function filterInventory() {
     renderInventory();
 }
 
-// ============ PRODUCT CRUD ============
+// ============ PRODUCT FORM: CATEGORY-FIRST FLOW ============
+function getSubcategoriesForCategory(catName) {
+    const cat = categories.find(c => c.name === catName);
+    return cat ? (cat.subcategories || []) : [];
+}
+
+function getBrandsForCategory(catName) {
+    if (!catName) return brands;
+    const cat = categories.find(c => c.name === catName);
+    if (!cat) return brands;
+    return brands.filter(b => {
+        if (!b.categoryIds || b.categoryIds.length === 0) return true;
+        const catIdSet = new Set(b.categoryIds.map(id => Number(id)));
+        return catIdSet.has(Number(cat.id));
+    });
+}
+
+function getSizeSystemForCategory(catName) {
+    const cat = categories.find(c => c.name === catName);
+    if (!cat) return 'clothing';
+    if (cat.type === 'calzado') return 'shoe';
+    if (cat.type === 'prenda' || cat.type === 'accesorio') return 'clothing';
+    const lower = catName.toLowerCase();
+    if (/zapato|tenis|sneaker|zapatilla|bota|sandalia|calzado/.test(lower)) return 'shoe';
+    return 'clothing';
+}
+
+function getSizesForSystem(system) {
+    return sizes.filter(s => s.system === system);
+}
+
+function getSizesForBrandAndCategory(brandName, catName) {
+    const system = getSizeSystemForCategory(catName);
+    const brand = brands.find(b => b.name === brandName);
+    if (brand && brand.sizeIds && brand.sizeIds.length > 0) {
+        const sizeIdSet = new Set(brand.sizeIds.map(id => Number(id)));
+        return sizes.filter(s => s.system === system && sizeIdSet.has(Number(s.id)));
+    }
+    return sizes.filter(s => s.system === system);
+}
+
+function buildSizeSelectOptions(selectedValue) {
+    const catName = getCdValue('prodCategoryCd') || document.getElementById('prodCategory')?.value || '';
+    const brandName = getCdValue('prodBrandCd') || document.getElementById('prodBrand')?.value || '';
+    const availableSizes = getSizesForBrandAndCategory(brandName, catName);
+    let html = '<option value="">Seleccionar talla...</option>';
+    availableSizes.forEach(s => {
+        const sel = s.value === selectedValue || s.label === selectedValue ? 'selected' : '';
+        html += `<option value="${s.value}" ${sel}>${s.label}</option>`;
+    });
+    return html;
+}
+
+function buildSubcategoryOptions(selectedValue) {
+    const catName = getCdValue('prodCategoryCd') || '';
+    const subs = getSubcategoriesForCategory(catName);
+    let html = '<option value="">Sin subcategoría</option>';
+    subs.forEach(s => {
+        const sel = s === selectedValue ? 'selected' : '';
+        html += `<option value="${s}" ${sel}>${s}</option>`;
+    });
+    return html;
+}
+
+let _productFormUpdating = false;
+
+function onCategoryChangeForProduct() {
+    if (_productFormUpdating) return;
+    _productFormUpdating = true;
+
+    const catName = getCdValue('prodCategoryCd') || '';
+
+    // Sync to native select
+    const catNative = document.getElementById('prodCategory');
+    if (catNative) catNative.value = catName;
+
+    // 1) Filter brands by category
+    const filteredBrands = getBrandsForCategory(catName);
+    const brandWrap = document.getElementById('prodBrandCd');
+    const currentBrand = getCdValue('prodBrandCd') || '';
+    const validBrand = filteredBrands.some(b => b.name === currentBrand) ? currentBrand : '';
+
+    if (brandWrap) {
+        const brandOptions = filteredBrands.map(b => ({ value: b.name, label: b.name, icon: 'bookmark-fill' }));
+        createCustomDropdown('prodBrandCd', brandOptions, {
+            placeholder: 'Seleccionar marca...',
+            icon: 'bookmark-fill',
+            value: validBrand,
+            onChange: function(val) {
+                const brandNative = document.getElementById('prodBrand');
+                if (brandNative) brandNative.value = val;
+                refreshAllSizeSelects();
+            }
+        });
+        const brandNative = document.getElementById('prodBrand');
+        if (brandNative) brandNative.value = validBrand;
+    }
+
+    // 2) Update subcategory dropdown
+    const subWrap = document.getElementById('prodSubcategoryCd');
+    if (subWrap) {
+        const currentSub = getCdValue('prodSubcategoryCd') || '';
+        const subs = getSubcategoriesForCategory(catName);
+        const subOptions = subs.map(s => ({ value: s, label: s, icon: 'tag' }));
+        const validSub = subs.includes(currentSub) ? currentSub : '';
+        createCustomDropdown('prodSubcategoryCd', subOptions, {
+            placeholder: 'Sin subcategoría',
+            icon: 'tag',
+            value: validSub,
+            onChange: function(val) {
+                const subNative = document.getElementById('prodSubcategory');
+                if (subNative) subNative.value = val;
+            }
+        });
+        const subNative = document.getElementById('prodSubcategory');
+        if (subNative) subNative.value = validSub;
+    }
+
+    // 3) Update department (inherit from category)
+    const cat = categories.find(c => c.name === catName);
+    if (cat && !document.getElementById('prodDeptManual')?.checked) {
+        const deptNative = document.getElementById('prodDepartment');
+        if (deptNative) deptNative.value = cat.department || 'unisex';
+        setCdValue('prodDeptCd', cat.department || 'unisex');
+    }
+
+    // 4) Refresh sizes AFTER brand is set
+    refreshAllSizeSelects();
+
+    _productFormUpdating = false;
+}
+
+function refreshAllSizeSelects() {
+    document.querySelectorAll('#sizesContainer .size-select').forEach(sel => {
+        const current = sel.value;
+        sel.innerHTML = buildSizeSelectOptions(current);
+    });
+}
+
+// ============ SIZE ROW MANAGEMENT ============
+function addSizeRow(size, stock) {
+    const container = document.getElementById('sizesContainer');
+    const idx = container.children.length;
+    const div = document.createElement('div');
+    div.className = 'size-row';
+    div.dataset.index = idx;
+    div.innerHTML = `
+        <select class="form-select size-select" style="flex:1;">${buildSizeSelectOptions(size)}</select>
+        <input type="number" class="form-input size-stock" placeholder="Stock" min="0" style="width:80px;text-align:center;" value="${stock || ''}">
+        <button type="button" class="btn btn-sm btn-danger size-remove" onclick="removeSizeRow(this)" style="padding:3px 8px;font-size:11px;"><i class="bi bi-x"></i></button>
+    `;
+    container.appendChild(div);
+}
+
+function removeSizeRow(btn) {
+    const rows = document.querySelectorAll('#sizesContainer .size-row');
+    if (rows.length <= 1) { showToast('Debe haber al menos una talla', 'error'); return; }
+    btn.closest('.size-row').remove();
+}
 function autoCalcPrice() {
     const cost = parseFloat(document.getElementById('prodCost').value) || 0;
     const base = cost + fixedCost;
@@ -157,45 +315,25 @@ function getSizeRows() {
     return sizes;
 }
 
-function addSizeRow(size, stock) {
-    const container = document.getElementById('sizesContainer');
-    const idx = container.children.length;
-    const selOptions = ['36','36.5','37','37.5','38','38.5','39','39.5','40','40.5','41','41.5','42','42.5','43']
-        .map(s => `<option ${s === size ? 'selected' : ''}>${s}</option>`).join('');
-    const div = document.createElement('div');
-    div.className = 'size-row';
-    div.dataset.index = idx;
-    div.innerHTML = `
-        <select class="form-select size-select" style="flex:1;">${selOptions}</select>
-        <input type="number" class="form-input size-stock" placeholder="Stock" min="0" style="width:80px;text-align:center;" value="${stock || ''}">
-        <button type="button" class="btn btn-sm btn-danger size-remove" onclick="removeSizeRow(this)" style="padding:3px 8px;font-size:11px;"><i class="bi bi-x"></i></button>
-    `;
-    container.appendChild(div);
-}
-
-function removeSizeRow(btn) {
-    const rows = document.querySelectorAll('#sizesContainer .size-row');
-    if (rows.length <= 1) { showToast('Debe haber al menos una talla', 'error'); return; }
-    btn.closest('.size-row').remove();
-}
-
 function getProductGroupId(p) {
-    return [p.name, p.brand, p.category, p.gender, p.cost, p.price].join('||');
+    return [p.name, p.brand, p.category, p.subcategory || '', p.department || '', p.gender, p.cost, p.price].join('||');
 }
 
 async function saveProduct() {
     const editId = document.getElementById('editProductId').value;
     const name = document.getElementById('prodName').value.trim();
-    const brand = document.getElementById('prodBrand').value.trim();
-    const category = document.getElementById('prodCategory').value;
-    const gender = document.getElementById('prodGender').value;
+    const brand = getCdValue('prodBrandCd') || '';
+    const category = getCdValue('prodCategoryCd') || '';
+    const subcategory = getCdValue('prodSubcategoryCd') || '';
+    const department = getCdValue('prodDeptCd') || 'unisex';
+    const gender = getCdValue('prodGenderCd') || 'Unisex';
     const skuBase = document.getElementById('prodSKU').value.trim();
     const cost = parseFloat(document.getElementById('prodCost').value) || 0;
     const price = parseFloat(document.getElementById('prodPrice').value) || 0;
     const minStock = parseInt(document.getElementById('prodMinStock').value) || 5;
     const desc = document.getElementById('prodDesc').value.trim();
     const sellWithoutStock = document.getElementById('prodSellWithoutStock').checked;
-    const sizes = getSizeRows();
+    const sizeRows = getSizeRows();
 
     if (!name) { showToast('Ingresa el nombre del producto', 'error'); return; }
     if (price <= 0) { showToast('Ingresa un precio de venta válido', 'error'); return; }
@@ -211,11 +349,11 @@ async function saveProduct() {
     }
 
     // Create one product per size
-    sizes.forEach((s, i) => {
+    sizeRows.forEach((s, i) => {
         const sku = skuBase || (name.slice(0,3).toUpperCase() + '-' + brand.slice(0,2).toUpperCase() + '-' + s.size);
         products.push({
             id: Date.now() + i,
-            name, brand, category, gender,
+            name, brand, category, subcategory, department, gender,
             size: s.size,
             sku,
             cost, price,
@@ -238,12 +376,10 @@ function editProduct(id) {
     if (!p) return;
     const groupKey = getProductGroupId(p);
     const groupProducts = products.filter(pr => getProductGroupId(pr) === groupKey);
-    
+
+    _productFormUpdating = true;
     document.getElementById('editProductId').value = groupKey;
     document.getElementById('prodName').value = p.name;
-    document.getElementById('prodBrand').value = p.brand;
-    document.getElementById('prodCategory').value = p.category;
-    document.getElementById('prodGender').value = p.gender;
     document.getElementById('prodSKU').value = p.sku;
     document.getElementById('prodCost').value = p.cost;
     document.getElementById('prodPrice').value = p.price;
@@ -251,24 +387,45 @@ function editProduct(id) {
     document.getElementById('prodDesc').value = p.desc || '';
     document.getElementById('prodSellWithoutStock').checked = p.sellWithoutStock || false;
     document.getElementById('productModalTitle').textContent = '✏️ Editar Producto';
-    
-    // Load all size rows
+
+    // Set category first → triggers brand/subcategory/size filtering
+    document.getElementById('prodCategory').value = p.category;
+    if (document.getElementById('prodCategoryCd')) setCdValue('prodCategoryCd', p.category || '');
+    onCategoryChangeForProduct();
+
+    // Set brand
+    document.getElementById('prodBrand').value = p.brand;
+    if (document.getElementById('prodBrandCd')) setCdValue('prodBrandCd', p.brand || '');
+
+    // Set subcategory
+    document.getElementById('prodSubcategory').value = p.subcategory || '';
+    if (document.getElementById('prodSubcategoryCd')) setCdValue('prodSubcategoryCd', p.subcategory || '');
+
+    // Set department
+    document.getElementById('prodDepartment').value = p.department || 'unisex';
+    if (document.getElementById('prodDeptCd')) setCdValue('prodDeptCd', p.department || 'unisex');
+
+    // Set gender
+    document.getElementById('prodGender').value = p.gender || 'Unisex';
+    if (document.getElementById('prodGenderCd')) setCdValue('prodGenderCd', p.gender || 'Unisex');
+
+    _productFormUpdating = false;
+
+    // Load size rows
     const container = document.getElementById('sizesContainer');
     container.innerHTML = '';
     groupProducts.forEach((gp, i) => {
-        const selOptions = ['36','36.5','37','37.5','38','38.5','39','39.5','40','40.5','41','41.5','42','42.5','43']
-            .map(s => `<option ${s === gp.size ? 'selected' : ''}>${s}</option>`).join('');
         const div = document.createElement('div');
         div.className = 'size-row';
         div.dataset.index = i;
         div.innerHTML = `
-            <select class="form-select size-select" style="flex:1;">${selOptions}</select>
+            <select class="form-select size-select" style="flex:1;">${buildSizeSelectOptions(gp.size)}</select>
             <input type="number" class="form-input size-stock" placeholder="Stock" min="0" style="width:80px;text-align:center;" value="${gp.stock}">
             <button type="button" class="btn btn-sm btn-danger size-remove" onclick="removeSizeRow(this)" style="padding:3px 8px;font-size:11px;"><i class="bi bi-x"></i></button>
         `;
         container.appendChild(div);
     });
-    
+
     showModal('productModal');
 }
 
@@ -453,11 +610,9 @@ function confirmAction() {
 }
 
 function clearProductForm() {
+    _productFormUpdating = true;
     document.getElementById('editProductId').value = '';
     document.getElementById('prodName').value = '';
-    document.getElementById('prodBrand').value = '';
-    document.getElementById('prodCategory').value = categories.length > 0 ? categories[0].name : '';
-    document.getElementById('prodGender').value = 'Unisex';
     document.getElementById('prodSKU').value = '';
     document.getElementById('prodCost').value = '';
     document.getElementById('prodPrice').value = '';
@@ -465,12 +620,23 @@ function clearProductForm() {
     document.getElementById('prodDesc').value = '';
     document.getElementById('prodSellWithoutStock').checked = false;
     document.getElementById('productModalTitle').textContent = '👟 Nuevo Producto';
-    // Reset sizes container to one empty row
+    const firstCat = categories.length > 0 ? categories[0].name : '';
+
+    // Reinitialize all dropdowns
+    populateBrandCategoryDropdowns();
+
+    // Set category and trigger filtering
+    if (firstCat) {
+        setCdValue('prodCategoryCd', firstCat);
+    }
+    onCategoryChangeForProduct();
+
+    _productFormUpdating = false;
+
+    // Reset sizes container
     document.getElementById('sizesContainer').innerHTML = `
         <div class="size-row" data-index="0">
-            <select class="form-select size-select" style="flex:1;">
-                ${['36','36.5','37','37.5','38','38.5','39','39.5','40','40.5','41','41.5','42','42.5','43'].map(s => `<option ${s === '39' ? 'selected' : ''}>${s}</option>`).join('')}
-            </select>
+            <select class="form-select size-select" style="flex:1;">${buildSizeSelectOptions('')}</select>
             <input type="number" class="form-input size-stock" placeholder="Stock" min="0" style="width:80px;text-align:center;">
             <button type="button" class="btn btn-sm btn-danger size-remove" onclick="removeSizeRow(this)" style="padding:3px 8px;font-size:11px;"><i class="bi bi-x"></i></button>
         </div>

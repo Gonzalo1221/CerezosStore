@@ -13,28 +13,97 @@ let creditLimit = 10000;
 let creditDays = 30;
 
 function populateBrandCategoryDropdowns() {
-    // Brand dropdown (product form)
-    const brandSel = document.getElementById('prodBrand');
-    if (brandSel) {
-        const current = brandSel.value;
-        brandSel.innerHTML = '<option value="">Seleccionar marca...</option>' +
-            brands.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
-        brandSel.value = current || '';
+    // Category dropdown (product form) - custom dropdown
+    const catWrap = document.getElementById('prodCategoryCd');
+    if (catWrap) {
+        const current = getCdValue('prodCategoryCd') || '';
+        const catOptions = categories.filter(c => c.active !== false).map(c => ({ value: c.name, label: c.name, icon: 'tag-fill' }));
+        createCustomDropdown('prodCategoryCd', catOptions, {
+            placeholder: 'Seleccionar categoría...',
+            icon: 'tag-fill',
+            value: current,
+            onChange: function(val) {
+                const catNative = document.getElementById('prodCategory');
+                if (catNative) catNative.value = val;
+                onCategoryChangeForProduct();
+            }
+        });
     }
-    // Category dropdown (product form)
-    const catSel = document.getElementById('prodCategory');
-    if (catSel) {
-        const current = catSel.value;
-        catSel.innerHTML = '<option value="">Seleccionar categoría...</option>' +
-            categories.map(c => `<option value="${c.name}">${getCategoryIcon(c.name)} ${c.name}</option>`).join('');
-        catSel.value = current || '';
+    // Brand dropdown (product form) - custom dropdown
+    const brandWrap = document.getElementById('prodBrandCd');
+    if (brandWrap) {
+        const current = getCdValue('prodBrandCd') || '';
+        const catName = getCdValue('prodCategoryCd') || '';
+        const filteredBrands = getBrandsForCategory(catName);
+        const brandOptions = filteredBrands.map(b => ({ value: b.name, label: b.name, icon: 'bookmark-fill' }));
+        createCustomDropdown('prodBrandCd', brandOptions, {
+            placeholder: 'Seleccionar marca...',
+            icon: 'bookmark-fill',
+            value: current,
+            onChange: function(val) {
+                const brandNative = document.getElementById('prodBrand');
+                if (brandNative) brandNative.value = val;
+                refreshAllSizeSelects();
+            }
+        });
+    }
+    // Subcategory dropdown (product form) - custom dropdown
+    const subWrap = document.getElementById('prodSubcategoryCd');
+    if (subWrap) {
+        const current = getCdValue('prodSubcategoryCd') || '';
+        const catName = getCdValue('prodCategoryCd') || '';
+        const subs = getSubcategoriesForCategory(catName);
+        const subOptions = subs.map(s => ({ value: s, label: s, icon: 'tag' }));
+        createCustomDropdown('prodSubcategoryCd', subOptions, {
+            placeholder: 'Sin subcategoría',
+            icon: 'tag',
+            value: current,
+            onChange: function(val) {
+                const subNative = document.getElementById('prodSubcategory');
+                if (subNative) subNative.value = val;
+            }
+        });
+    }
+    // Department dropdown (product form) - custom dropdown
+    const deptWrap = document.getElementById('prodDeptCd');
+    if (deptWrap) {
+        const current = document.getElementById('prodDepartment')?.value || 'unisex';
+        const deptOptions = [
+            { value: 'hombre', label: '👨 Hombre', icon: 'person' },
+            { value: 'mujer', label: '👩 Mujer', icon: 'person' },
+            { value: 'niño', label: '👧 Niño', icon: 'person' },
+            { value: 'unisex', label: '🌍 Unisex', icon: 'globe' }
+        ];
+        createCustomDropdown('prodDeptCd', deptOptions, {
+            placeholder: 'Departamento...',
+            icon: 'globe',
+            value: current,
+            onChange: function(val) { document.getElementById('prodDepartment').value = val; }
+        });
+    }
+    // Gender dropdown (product form) - custom dropdown
+    const genderWrap = document.getElementById('prodGenderCd');
+    if (genderWrap) {
+        const current = document.getElementById('prodGender')?.value || 'Unisex';
+        const genderOptions = [
+            { value: 'Unisex', label: 'Unisex', icon: 'globe' },
+            { value: 'Hombre', label: 'Hombre', icon: 'person' },
+            { value: 'Mujer', label: 'Mujer', icon: 'person' },
+            { value: 'Niño', label: 'Niño', icon: 'person' }
+        ];
+        createCustomDropdown('prodGenderCd', genderOptions, {
+            placeholder: 'Género...',
+            icon: 'globe',
+            value: current,
+            onChange: function(val) { document.getElementById('prodGender').value = val; }
+        });
     }
     // Category filter (inventory)
     const invFilter = document.getElementById('filterCategory');
     if (invFilter) {
         const current = invFilter.value;
         invFilter.innerHTML = '<option value="">Todas las categorías</option>' +
-            categories.map(c => `<option value="${c.name}">${getCategoryIcon(c.name)} ${c.name}</option>`).join('');
+            categories.filter(c => c.active !== false).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         invFilter.value = current || '';
     }
     // Category filter (POS)
@@ -42,7 +111,7 @@ function populateBrandCategoryDropdowns() {
     if (posFilter) {
         const current = posFilter.value;
         posFilter.innerHTML = '<option value="">Todas</option>' +
-            categories.map(c => `<option value="${c.name}">${getCategoryIcon(c.name)} ${c.name}</option>`).join('');
+            categories.filter(c => c.active !== false).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         posFilter.value = current || '';
     }
 }
@@ -126,6 +195,9 @@ function loadQuotes(data) { quotes = (data || []).map(q => ({ ...q, items: q.ite
 async function saveUsers() { try { await apiUpsert('users', users); } catch (e) { console.warn('saveUsers:', e); } }
 async function saveClients() { try { await apiUpsert('clients', clients); } catch (e) { console.warn('saveClients:', e); } }
 async function saveCreditPayments() { try { await apiUpsert('credit_payments', creditPayments); } catch (e) { console.warn('saveCreditPayments:', e); } }
+async function saveCategories() { try { await apiUpsert('categories', categories); } catch (e) { console.warn('saveCategories:', e); showToast('Error al guardar categorías: ' + e.message, 'error'); } }
+async function saveBrands() { try { await apiUpsert('brands', brands); } catch (e) { console.warn('saveBrands:', e); showToast('Error al guardar marcas: ' + e.message, 'error'); } }
+async function saveSizes() { try { await apiUpsert('sizes', sizes); } catch (e) { console.warn('saveSizes:', e); showToast('Error al guardar tallas: ' + e.message, 'error'); } }
 // ============ SECURITY HELPERS (password hashing for user management) ============
 function arrayBufferToBase64(buffer) {
     let binary = '';

@@ -56,7 +56,7 @@ function handleLogout() {
 // ============ NAVIGATION ============
 function navigateTo(page, el) {
     // Permission guard
-    const pageTableMap = { inventory:'products', pos:'products', sales:'sales', quotes:'quotes', credits:'clients', clients:'clients', reports:'reports', users:'users', settings:'settings' };
+    const pageTableMap = { inventory:'products', pos:'products', sales:'sales', quotes:'quotes', credits:'clients', clients:'clients', reports:'reports', users:'users', settings:'settings', brandscat:'brands' };
     const table = pageTableMap[page];
     if (table && !can('read', table)) {
         showToast('No tienes permiso para acceder a esta sección', 'error');
@@ -81,6 +81,7 @@ function navigateTo(page, el) {
     if (page === 'clients') renderClients();
     if (page === 'dashboard') renderDashboard();
     if (page === 'quotes') renderQuotes();
+    if (page === 'brandscat') renderBrandsCategories();
 }
 
 function toggleSidebar() {
@@ -95,8 +96,8 @@ function toggleSidebar() {
 
 // ============ INIT APP (carga datos desde backend API) ============
 async function initSupabaseOnly() {
-    const tables = ['users','products','clients','sales','credit_payments','brands','categories','quotes'];
-    const map = { users, products, clients, sales, credit_payments: creditPayments, brands, categories, quotes };
+    const tables = ['users','products','clients','sales','credit_payments','brands','categories','quotes','sizes'];
+    const map = { users, products, clients, sales, credit_payments: creditPayments, brands, categories, quotes, sizes };
     
     for (const table of tables) {
         try {
@@ -128,19 +129,97 @@ async function initSupabaseOnly() {
         }
     } catch (e) { /* silent fail */ }
     
-    // Fallback defaults if Supabase has no brands/categories
+    // Ensure new fields on brands (parse JSON strings from Supabase)
+    brands.forEach(b => {
+        if (typeof b.categoryIds === 'string') try { b.categoryIds = JSON.parse(b.categoryIds); } catch(e) { b.categoryIds = []; }
+        if (typeof b.sizeIds === 'string') try { b.sizeIds = JSON.parse(b.sizeIds); } catch(e) { b.sizeIds = []; }
+        if (!Array.isArray(b.categoryIds)) b.categoryIds = [];
+        if (!Array.isArray(b.sizeIds)) b.sizeIds = [];
+        if (!b.sizeSystem) b.sizeSystem = 'shoe';
+    });
+    
+    // Ensure new fields on categories (parse JSON strings from Supabase)
+    categories.forEach(c => {
+        if (typeof c.subcategories === 'string') try { c.subcategories = JSON.parse(c.subcategories); } catch(e) { c.subcategories = []; }
+        if (!Array.isArray(c.subcategories)) c.subcategories = [];
+        if (!c.type) c.type = 'prenda';
+        if (!c.department) c.department = 'unisex';
+        if (!c.icon) c.icon = '🏷️';
+        if (c.sortOrder === undefined) c.sortOrder = 0;
+        if (c.active === undefined) c.active = true;
+    });
+    
+    // Ensure new fields on sizes
+    sizes.forEach(s => {
+        if (!s.system) s.system = 'shoe';
+    });
+    
+    // Fallback defaults if Supabase has no data
     if (brands.length === 0) {
         brands = [
             'Adidas','Asics','Balenciaga','Brooks','Converse','Crocs','Diadora',
             'Dr. Martens','Fila','Hoka','Jordan','New Balance','Nike','On','Puma',
             'Reebok','Saucony','Skechers','Timberland','Under Armour','Vans'
-        ].map((n,i) => ({ id: i+1, name: n }));
+        ].map((n,i) => ({ id: i+1, name: n, categoryIds: [], sizeIds: [], sizeSystem: 'shoe' }));
     }
     if (categories.length === 0) {
-        categories = [
-            'Sneakers','Running','Casuales','Deportivas','Botas','Sandalias','Edición Limitada'
-        ].map((n,i) => ({ id: i+1, name: n }));
+        categories = getDefaultCategories();
     }
+    if (sizes.length === 0) {
+        sizes = getDefaultSizes();
+    }
+}
+
+function getDefaultCategories() {
+    return [
+        { id: 1, name: 'Zapatos', type: 'calzado', department: 'unisex', icon: '👟', subcategories: ['Sneakers','Running','Casuales','Botas','Sandalias','Formales'], sortOrder: 1, active: true },
+        { id: 2, name: 'Playeras', type: 'prenda', department: 'unisex', icon: '👕', subcategories: ['Lisas','Estampadas','Polo'], sortOrder: 2, active: true },
+        { id: 3, name: 'Sudaderas', type: 'prenda', department: 'unisex', icon: '🧥', subcategories: ['Con capucha','Sin capucha'], sortOrder: 3, active: true },
+        { id: 4, name: 'Chaquetas', type: 'prenda', department: 'unisex', icon: '🧥', subcategories: ['Rompevientos','Mezclilla'], sortOrder: 4, active: true },
+        { id: 5, name: 'Jeans', type: 'prenda', department: 'unisex', icon: '👖', subcategories: ['Skinny','Straight','Relaxed'], sortOrder: 5, active: true },
+        { id: 6, name: 'Bermudas', type: 'prenda', department: 'unisex', icon: '🩳', subcategories: ['Deportivas','Casuales'], sortOrder: 6, active: true },
+        { id: 7, name: 'Pantalones', type: 'prenda', department: 'unisex', icon: '👖', subcategories: ['Formales','Deportivos'], sortOrder: 7, active: true },
+        { id: 8, name: 'Accesorios', type: 'accesorio', department: 'unisex', icon: '🎒', subcategories: ['Gorras','Calcetines','Bolsos','Cinturones'], sortOrder: 8, active: true }
+    ];
+}
+
+function getDefaultSizes() {
+    return [
+        // Zapato
+        { id: 1, value: '36', label: '36', system: 'shoe' }, { id: 2, value: '36.5', label: '36.5', system: 'shoe' },
+        { id: 3, value: '37', label: '37', system: 'shoe' }, { id: 4, value: '37.5', label: '37.5', system: 'shoe' },
+        { id: 5, value: '38', label: '38', system: 'shoe' }, { id: 6, value: '38.5', label: '38.5', system: 'shoe' },
+        { id: 7, value: '39', label: '39', system: 'shoe' }, { id: 8, value: '39.5', label: '39.5', system: 'shoe' },
+        { id: 9, value: '40', label: '40', system: 'shoe' }, { id: 10, value: '40.5', label: '40.5', system: 'shoe' },
+        { id: 11, value: '41', label: '41', system: 'shoe' }, { id: 12, value: '41.5', label: '41.5', system: 'shoe' },
+        { id: 13, value: '42', label: '42', system: 'shoe' }, { id: 14, value: '42.5', label: '42.5', system: 'shoe' },
+        { id: 15, value: '43', label: '43', system: 'shoe' },
+        // Camisa / Playera (unisex)
+        { id: 16, value: 'XS', label: 'XS', system: 'clothing' },
+        { id: 17, value: 'S', label: 'S', system: 'clothing' },
+        { id: 18, value: 'M', label: 'M', system: 'clothing' },
+        { id: 19, value: 'L', label: 'L', system: 'clothing' },
+        { id: 20, value: 'XL', label: 'XL', system: 'clothing' },
+        { id: 21, value: 'XXL', label: 'XXL', system: 'clothing' },
+        { id: 22, value: 'XXXL', label: 'XXXL', system: 'clothing' },
+        // Pantalón hombre
+        { id: 23, value: '28', label: '28"', system: 'clothing' },
+        { id: 24, value: '30', label: '30"', system: 'clothing' },
+        { id: 25, value: '32', label: '32"', system: 'clothing' },
+        { id: 26, value: '34', label: '34"', system: 'clothing' },
+        { id: 27, value: '36', label: '36"', system: 'clothing' },
+        { id: 28, value: '38', label: '38"', system: 'clothing' },
+        { id: 29, value: '40', label: '40"', system: 'clothing' },
+        { id: 30, value: '42', label: '42"', system: 'clothing' },
+        // Pantalón mujer
+        { id: 31, value: 'W24', label: 'W24', system: 'clothing' },
+        { id: 32, value: 'W26', label: 'W26', system: 'clothing' },
+        { id: 33, value: 'W28', label: 'W28', system: 'clothing' },
+        { id: 34, value: 'W30', label: 'W30', system: 'clothing' },
+        { id: 35, value: 'W32', label: 'W32', system: 'clothing' },
+        { id: 36, value: 'W34', label: 'W34', system: 'clothing' },
+        { id: 37, value: 'W36', label: 'W36', system: 'clothing' }
+    ];
 }
 
 function initApp() {

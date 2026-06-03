@@ -105,6 +105,12 @@
                 </div>
             </div>
             <div class="nav-section">
+                <div class="nav-section-title">Catálogos</div>
+                <div class="nav-item" data-page="brandscat" onclick="navigateTo('brandscat', this)">
+                    <i class="bi bi-tags-fill"></i> Marcas, Cat. y Tallas
+                </div>
+            </div>
+            <div class="nav-section">
                 <div class="nav-section-title">Sistema</div>
                 <div class="nav-item" data-page="users" onclick="navigateTo('users', this)">
                     <i class="bi bi-people-fill"></i> Usuarios
@@ -706,10 +712,57 @@
                 </div>
             </div>
         </div>
+        <!-- Brands, Categories & Sizes Page -->
+        <div class="page-section" id="page-brandscat">
+            <div class="page-header">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+                    <h1><i class="bi bi-tags"></i> Marcas, Categorías y Tallas</h1>
+                </div>
+            </div>
+            <div class="bc-stats" id="bcStats"></div>
+            <div class="bc-main-grid">
+                <div class="bc-panel">
+                    <div class="bc-panel-header">
+                        <h3><i class="bi bi-tag-fill" style="color:#6366f1;"></i> Categorías</h3>
+                    </div>
+                    <div class="bc-panel-body" id="bcCategoriesPanel"></div>
+                </div>
+                <div class="bc-side">
+                    <div class="bc-panel">
+                        <div class="bc-panel-header">
+                            <h3><i class="bi bi-bookmark-fill" style="color:var(--primary);"></i> Marcas</h3>
+                            <span class="bc-card-count" id="bcBrandsCount">0</span>
+                            <button class="btn btn-sm btn-primary" onclick="showBrandModal(null)" ${!can('create','brands') ? 'style="display:none"' : ''}><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                        <div class="bc-panel-body" id="bcBrandsBody"></div>
+                    </div>
+                    <div class="bc-panel">
+                        <div class="bc-panel-header">
+                            <h3><i class="bi bi-rulers" style="color:#10b981;"></i> Tallas</h3>
+                            <span class="bc-card-count" id="bcSizesCount">0</span>
+                            <button class="btn btn-sm btn-primary" onclick="showAddSizeModal()" ${!can('create','sizes') ? 'style="display:none"' : ''}><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                        <div class="bc-panel-body" id="bcSizesBody"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 </div>
 
 <!-- MODALS -->
+
+<!-- Brand/Category/Size Modal -->
+<div class="modal-overlay" id="brandCatModal">
+    <div class="modal" style="max-width:520px;">
+        <div class="modal-header">
+            <h3 id="brandCatModalTitle">Modal</h3>
+            <button class="modal-close" onclick="hideModal('brandCatModal')"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body" id="brandCatModalBody"></div>
+    </div>
+</div>
 
 <!-- New Product Modal -->
 <div class="modal-overlay" id="productModal">
@@ -720,54 +773,69 @@
         </div>
         <div class="modal-body">
             <input type="hidden" id="editProductId">
+            <input type="hidden" id="prodSubcategory">
+            <input type="hidden" id="prodDepartment" value="unisex">
             <div class="form-row">
                 <div class="form-group">
                     <label>Nombre del Producto</label>
                     <input type="text" class="form-input" id="prodName" placeholder="Ej: Air Max 90">
                 </div>
                 <div class="form-group">
+                    <label>Categoría</label>
+                    <div id="prodCategoryCd"></div>
+                    <select class="form-select" id="prodCategory" style="display:none;">
+                        <option value="">Seleccionar categoría...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Subcategoría</label>
+                    <div id="prodSubcategoryCd"></div>
+                    <select class="form-select" id="prodSubcategorySelect" style="display:none;">
+                        <option value="">Sin subcategoría</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Marca</label>
-                    <select class="form-select" id="prodBrand">
+                    <div id="prodBrandCd"></div>
+                    <select class="form-select" id="prodBrand" style="display:none;">
                         <option value="">Seleccionar marca...</option>
                     </select>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Categoría</label>
-                    <select class="form-select" id="prodCategory">
-                        <option value="">Seleccionar categoría...</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>Género</label>
-                    <select class="form-select" id="prodGender">
+                    <div id="prodGenderCd"></div>
+                    <select class="form-select" id="prodGender" style="display:none;">
                         <option>Unisex</option>
                         <option>Hombre</option>
                         <option>Mujer</option>
                         <option>Niño</option>
                     </select>
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label>SKU / Código</label>
                     <input type="text" class="form-input" id="prodSKU" placeholder="(auto-generado)">
                 </div>
+            </div>
+            <div class="form-row">
                 <div class="form-group">
                     <label>Stock Mínimo</label>
                     <input type="number" class="form-input" id="prodMinStock" placeholder="5" min="0">
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label>Precio de Compra ($)</label>
                     <input type="number" class="form-input" id="prodCost" placeholder="0.00" step="0.01" oninput="autoCalcPrice()">
                 </div>
+            </div>
+            <div class="form-row">
                 <div class="form-group">
                     <label>Precio de Venta ($) <span id="autoCalcHint" style="font-size:11px;color:var(--gray-light);font-weight:400;"></span></label>
                     <input type="number" class="form-input" id="prodPrice" placeholder="0.00" step="0.01">
                 </div>
+                <div class="form-group"></div>
             </div>
             <div class="form-group" style="margin-top:12px;">
                 <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -777,10 +845,7 @@
                 <div id="sizesContainer">
                     <div class="size-row" data-index="0">
                         <select class="form-select size-select" style="flex:1;">
-                            <option>36</option><option>36.5</option><option>37</option><option>37.5</option>
-                            <option>38</option><option>38.5</option><option>39</option><option>39.5</option>
-                            <option>40</option><option>40.5</option><option>41</option><option>41.5</option>
-                            <option>42</option><option>42.5</option><option>43</option>
+                            <option value="">Seleccionar talla...</option>
                         </select>
                         <input type="number" class="form-input size-stock" placeholder="Stock" min="0" style="width:80px;text-align:center;">
                         <button type="button" class="btn btn-sm btn-danger size-remove" onclick="removeSizeRow(this)" style="padding:3px 8px;font-size:11px;"><i class="bi bi-x"></i></button>
@@ -1317,6 +1382,7 @@
 <!-- Backend API handles all Supabase communication -->
 <script src="js/globals.js"></script>
 <script src="js/api.js"></script>
+<script src="js/customDropdown.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/app.js"></script>
@@ -1326,6 +1392,7 @@
 <script src="js/sales.js"></script>
 <script src="js/credits.js"></script>
 <script src="js/clients.js"></script>
+<script src="js/brandsCategories.js"></script>
 <script src="js/reports.js"></script>
 <script src="js/users.js"></script>
 <script src="js/init.js"></script>

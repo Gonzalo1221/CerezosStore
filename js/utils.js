@@ -10,7 +10,8 @@ const FE_PERMISSIONS = {
     settings: ['read','edit'],
     credit_payments: ['read','create','edit','delete'],
     brands: ['read','create','edit','delete'],
-    categories: ['read','create','edit','delete']
+    categories: ['read','create','edit','delete'],
+    sizes: ['read','create','edit','delete']
   },
   'Administrador': {
     users: ['read','create','edit'],
@@ -22,7 +23,8 @@ const FE_PERMISSIONS = {
     settings: ['read'],
     credit_payments: ['read','create','edit','delete'],
     brands: ['read','create','edit','delete'],
-    categories: ['read','create','edit','delete']
+    categories: ['read','create','edit','delete'],
+    sizes: ['read','create','edit','delete']
   },
   'Vendedor': {
     users: ['read'],
@@ -34,7 +36,8 @@ const FE_PERMISSIONS = {
     settings: [],
     credit_payments: ['read','create'],
     brands: ['read'],
-    categories: ['read']
+    categories: ['read'],
+    sizes: ['read']
   }
 };
 
@@ -58,7 +61,7 @@ function updateSidebarUser(user) {
 
 function updateSidebarVisibility() {
     const navItems = document.querySelectorAll('.nav-item');
-    const pageTableMap = { inventory:'products', pos:'products', sales:'sales', quotes:'quotes', credits:'clients', clients:'clients', reports:'reports', users:'users', settings:'settings' };
+    const pageTableMap = { inventory:'products', pos:'products', sales:'sales', quotes:'quotes', credits:'clients', clients:'clients', reports:'reports', users:'users', settings:'settings', brandscat:'brands' };
     navItems.forEach(el => {
         const page = el.dataset.page;
         const table = pageTableMap[page];

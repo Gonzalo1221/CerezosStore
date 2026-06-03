@@ -10,7 +10,8 @@ const PERMISSIONS = {
     settings:         ['read', 'edit'],
     credit_payments:  ['read', 'create', 'delete'],
     brands:           ['read', 'create', 'edit', 'delete'],
-    categories:       ['read', 'create', 'edit', 'delete']
+    categories:       ['read', 'create', 'edit', 'delete'],
+    sizes:            ['read', 'create', 'edit', 'delete']
   },
   'Administrador': {
     users:            ['read', 'create', 'edit'],
@@ -21,7 +22,8 @@ const PERMISSIONS = {
     settings:         ['read'],
     credit_payments:  ['read', 'create', 'edit', 'delete'],
     brands:           ['read', 'create', 'edit', 'delete'],
-    categories:       ['read', 'create', 'edit', 'delete']
+    categories:       ['read', 'create', 'edit', 'delete'],
+    sizes:            ['read', 'create', 'edit', 'delete']
   },
   'Vendedor': {
     users:            ['read'],
@@ -32,7 +34,8 @@ const PERMISSIONS = {
     settings:         [],
     credit_payments:  ['read', 'create'],
     brands:           ['read'],
-    categories:       ['read']
+    categories:       ['read'],
+    sizes:            ['read']
   }
 };
 
