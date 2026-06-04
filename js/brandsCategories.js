@@ -141,7 +141,7 @@ function onCatTypeChange(catId) {
     if (!list) return;
     list.innerHTML = filteredSizes.map(s => {
         const checked = catSizeIds.includes(s.id) ? 'checked' : '';
-        return `<label class="bc-check-item"><input type="checkbox" value="${s.id}" ${checked} class="bc-size-check"><span class="bc-check-box"></span><span>${s.label}</span></label>`;
+        return `<label class="bc-check-item"><input type="checkbox" value="${s.id}" ${checked} class="bc-size-check"><span>${s.label}</span></label>`;
     }).join('') || '<div style="color:var(--gray);font-size:12px;padding:8px;">No hay tallas para este sistema</div>';
 }
 

@@ -1,7 +1,7 @@
 // ============ CREDIT MANAGEMENT ============
 function renderCredits() {
     const search = (document.getElementById('creditSearch')?.value || '').toLowerCase();
-    const filteredClients = clients.filter(c => (c.creditUsed > 0 || c.creditEnabled !== false) && (c.name.toLowerCase().includes(search) || (c.phone || '').includes(search)));
+    const filteredClients = clients.filter(c => c.creditUsed > 0 && (c.name.toLowerCase().includes(search) || (c.phone || '').includes(search)));
     
     const totalCreditsPending = sales.filter(s => s.creditType === 'credito' && s.creditRemaining > 0).reduce((sum, s) => sum + s.creditRemaining, 0);
     const totalClientsWithCredit = clients.filter(c => c.creditUsed > 0).length;
@@ -65,7 +65,7 @@ function renderCredits() {
                 </td>
             </tr>
         `;
-    }).join('') || '<tr><td colspan="9"><div class="empty-state"><i class="bi bi-credit-card"></i><h3>No hay clientes registrados</h3><p>Agrega clientes para gestionar créditos</p></div></td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="empty-state"><i class="bi bi-check-circle"></i><h3>No hay clientes con deuda</h3><p>Ningún cliente tiene créditos pendientes</p></div></td></tr>';
     
     // Pending credits table
     const pendingBody = document.getElementById('pendingCreditsBody');

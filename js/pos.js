@@ -428,6 +428,11 @@ function editSale(saleId) {
     });
     document.getElementById('checkoutNotes').value = sale.notes || '';
     
+    // Restore manual total if the sale had one
+    if (sale.manualTotal) {
+        manualTotalOverride = sale.manualTotal;
+    }
+    
     if (sale.creditType === 'credito') {
         toggleCreditOptions();
         document.getElementById('creditDownPayment').value = sale.downPayment || 0;
@@ -436,6 +441,8 @@ function editSale(saleId) {
     }
     
     document.getElementById('confirmSaleBtn').innerHTML = '<i class="bi bi-check-lg"></i> Actualizar Venta';
+    document.querySelector('#checkoutModal .modal-header h3').innerHTML = '✏️ Editar Venta #' + sale.id;
+    document.getElementById('checkoutClient').disabled = true;
     showModal('checkoutModal');
 }
 
@@ -460,7 +467,22 @@ function cancelEditSale() {
         renderCart();
         editingSaleId = null;
         editingSaleBackup = null;
+        document.querySelector('#checkoutModal .modal-header h3').innerHTML = '✅ Confirmar Venta';
         document.getElementById('confirmSaleBtn').innerHTML = '<i class="bi bi-check-lg"></i> Confirmar Venta';
+        document.getElementById('checkoutClient').value = '';
+        document.getElementById('checkoutClient').disabled = false;
+        document.getElementById('checkoutNotes').value = '';
+        document.getElementById('manualTotalInput').value = '';
+        document.getElementById('editTotalRow').style.display = 'none';
+        document.getElementById('creditDownPayment').value = '';
+        document.getElementById('creditInstallments').value = '1';
+        document.querySelector('input[name="payMethod"][value="Efectivo"]').checked = true;
+        document.getElementById('creditOptions').style.display = 'none';
+        document.getElementById('clientCreditInfo').style.display = 'none';
+        document.getElementById('creditRemaining').textContent = '$0';
+        document.getElementById('creditInterestAmount').textContent = '$0';
+        document.getElementById('creditInstallmentValue').textContent = '$0';
+        manualTotalOverride = null;
     }
 }
 
@@ -491,6 +513,7 @@ function completeSale() {
     let creditBaseFinanced = 0;
     let creditInterestAmount = 0;
     let creditInstallmentValue = 0;
+    let manualTotal = null;
     
     if (payMethod === 'Crédito' && client) {
         creditType = 'credito';
@@ -498,6 +521,7 @@ function completeSale() {
         creditInstallments = parseInt(document.getElementById('creditInstallments').value) || 1;
         const wasManuallySet = manualTotalOverride !== null;
         if (wasManuallySet) {
+            manualTotal = manualTotalOverride;
             total = manualTotalOverride;
             manualTotalOverride = null;
         }
@@ -575,7 +599,8 @@ function completeSale() {
         creditInterestRate,
         creditBaseFinanced,
         creditInterestAmount,
-        creditInstallmentValue
+        creditInstallmentValue,
+        manualTotal
     };
 
     // Update stock
@@ -606,7 +631,9 @@ function completeSale() {
     manualTotalOverride = null;
     document.getElementById('confirmSaleBtn').innerHTML = '<i class="bi bi-check-lg"></i> Confirmar Venta';
     // Clear checkout form fields
+    document.querySelector('#checkoutModal .modal-header h3').innerHTML = '✅ Confirmar Venta';
     document.getElementById('checkoutClient').value = '';
+    document.getElementById('checkoutClient').disabled = false;
     document.getElementById('checkoutNotes').value = '';
     document.getElementById('manualTotalInput').value = '';
     document.getElementById('editTotalRow').style.display = 'none';

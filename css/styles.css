@@ -1152,27 +1152,28 @@
             padding: 2px 8px; border-radius: 20px;
         }
         .bc-check-list {
-            padding: 4px 10px 10px; max-height: 150px; overflow-y: auto;
+            display: flex; flex-wrap: wrap; gap: 6px;
+            padding: 4px 0;
         }
-        .bc-check-list::-webkit-scrollbar { width: 4px; }
-        .bc-check-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         .bc-check-item {
-            display: flex; align-items: center; gap: 8px;
-            padding: 6px 8px; border-radius: 6px; cursor: pointer;
-            font-size: 13px; transition: background 0.15s;
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 5px 13px; border-radius: 20px; cursor: pointer;
+            font-size: 12px; font-weight: 500; transition: all 0.2s;
+            border: 1.5px solid #d1d5db; background: #fff; color: #555;
+            user-select: none; white-space: nowrap;
         }
-        .bc-check-item:hover { background: rgba(184,134,11,0.05); }
+        .bc-check-item:hover {
+            border-color: var(--primary); color: var(--primary);
+            background: rgba(184,134,11,0.04);
+        }
         .bc-check-item input[type="checkbox"] { display: none; }
-        .bc-check-box {
-            width: 16px; height: 16px; border: 2px solid #ccc;
-            border-radius: 4px; display: flex; align-items: center;
-            justify-content: center; transition: all 0.15s; flex-shrink: 0;
+        .bc-check-box { display: none; }
+        .bc-check-item input:checked + .bc-check-box + span,
+        .bc-check-item:has(input:checked) {
+            color: #fff;
         }
-        .bc-check-item input:checked + .bc-check-box {
+        .bc-check-item:has(input:checked) {
             background: var(--primary); border-color: var(--primary);
-        }
-        .bc-check-item input:checked + .bc-check-box::after {
-            content: '\2713'; color: white; font-size: 10px; font-weight: 700;
         }
 
         /* ============ RESPONSIVE ============ */
