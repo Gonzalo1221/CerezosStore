@@ -131,6 +131,7 @@
         .btn-info:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(37,99,235,0.25); }
         .btn-sm { padding: 8px 14px; font-size: 12px; border-radius: 8px; }
         .login-footer { text-align: center; margin-top: 24px; color: var(--gray); font-size: 11px; letter-spacing: 0.3px; }
+        .login-footer-brand { color: var(--primary); font-weight: 700; }
 
         /* ============ LOADER ============ */
         .loader-overlay {
