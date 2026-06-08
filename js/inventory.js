@@ -79,6 +79,55 @@ function renderInventory() {
         `;
     }).join('') || '<tr><td colspan="6"><div class="empty-state"><i class="bi bi-box-seam"></i><h3>No hay productos</h3><p>Agrega tu primer producto al inventario</p></div></td></tr>';
 
+    const mobileEl = document.getElementById('inventoryMobileCards');
+    if (mobileEl) {
+        mobileEl.innerHTML = pageItems.map(p => {
+            const total = getTotalStock(p);
+            const totalCls = total === 0 ? 'var(--danger)' : 'var(--dark)';
+            const sizesHtml = (p.sizeIds || []).map(sid => {
+                const stock = getStockForSize(p, sid);
+                const label = getSizeLabel(sid);
+                const cls = stock <= (p.minStock || 5) ? (stock === 0 ? 'mc-stock-chip danger' : 'mc-stock-chip warning') : 'mc-stock-chip';
+                return `<span class="${cls}">${label}: ${stock}</span>`;
+            }).join('');
+            const profit = p.price - (p.cost || 0);
+            const profitPct = p.cost > 0 ? Math.round((profit / p.price) * 100) : 0;
+            const actions = [];
+            actions.push({ icon: 'bi-eye', class: 'view', label: 'Ver', onclick: `viewProduct(${p.id})` });
+            if (can('edit','products')) actions.push({ icon: 'bi-pencil', class: 'edit', label: 'Editar', onclick: `editProduct(${p.id})` });
+            if (can('delete','products')) actions.push({ icon: 'bi-trash3', class: 'delete danger', label: 'Eliminar', onclick: `deleteProduct(${p.id})` });
+            return `
+            <div class="mobile-card inventario">
+                <div class="mobile-card-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="product-thumb" style="width:38px;height:38px;font-size:18px;">${getCategoryIcon(p.category)}</div>
+                        <div>
+                            <div class="mobile-card-id">${p.name}</div>
+                            <div class="mobile-card-sub">${p.brand} · ${p.category}</div>
+                        </div>
+                    </div>
+                    ${buildMobileActionsBtn('p-' + p.id, actions)}
+                </div>
+                <div class="mobile-card-body">
+                    <div class="mobile-card-row">
+                        <i class="bi bi-upc-scan"></i>
+                        <span class="mc-value" style="font-family:monospace;font-size:11px;color:var(--gray);">${p.sku || '-'}</span>
+                    </div>
+                    <div class="mobile-card-row">
+                        <i class="bi bi-rulers"></i>
+                        <div class="mobile-card-chips">${sizesHtml || '<span style="color:var(--gray);font-size:11px;">Sin tallas</span>'}</div>
+                    </div>
+                </div>
+                <div class="mobile-card-footer">
+                    <div>
+                        <div class="mobile-card-total" style="color:${totalCls};">${total} <small>stock total</small></div>
+                        ${profit > 0 ? `<div class="mobile-card-profit">+$${profit.toLocaleString()} (${profitPct}%)</div>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('') || '<div class="empty-state" style="padding:30px;text-align:center;color:var(--gray);"><i class="bi bi-box-seam"></i><h3>No hay productos</h3></div>';
+    }
+
     const pagEl = document.getElementById('inventoryPagination');
     if (totalPages > 1) {
         let pagHTML = `<div class="pagination-info">Mostrando ${start+1}-${Math.min(start+ITEMS_PER_PAGE, filtered.length)} de ${filtered.length}</div><div class="pagination-btns">`;

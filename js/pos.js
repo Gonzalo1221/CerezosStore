@@ -772,25 +772,67 @@ function renderQuotes() {
     const tbody = document.getElementById('quotesTableBody');
     tbody.innerHTML = pageItems.map(q => {
         const itemsSummary = q.items.map(i => `${i.qty}x ${i.name}${i.size ? ' [' + i.size + ']' : ''}`).join(', ');
+        const totalFmt = (v) => '$' + v.toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0});
+        const statusBadge = `<span class="status-badge ${q.status === 'Vigente' ? 'pending' : 'inactive'}">${q.status}</span>`;
+        const actionsBtns = `<div class="actions-cell"><button class="action-btn view" onclick="viewQuote(${q.id})" title="Ver"><i class="bi bi-eye"></i></button>${can('edit','quotes') ? `<button class="action-btn edit" onclick="convertQuoteToSale(${q.id})" title="Convertir en Venta"><i class="bi bi-cart4"></i></button>` : ''}<button class="action-btn print" onclick="printQuote(${q.id})" title="Imprimir"><i class="bi bi-printer"></i></button>${can('delete','quotes') ? `<button class="action-btn delete" onclick="deleteQuote(${q.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}</div>`;
         return `
-            <tr>
-                <td style="font-weight:600;color:var(--info);">${q.folio}</td>
+            <tr class="tr-desktop">
+                <td><span style="font-weight:600;color:var(--info);">${q.folio}</span></td>
                 <td>${q.date}</td>
                 <td>${q.client}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
-                <td style="font-weight:700;">$${q.total.toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0})}</td>
-                <td><span class="status-badge ${q.status === 'Vigente' ? 'pending' : 'inactive'}">${q.status}</span></td>
-                <td>
-                    <div class="actions-cell">
-                        <button class="action-btn view" onclick="viewQuote(${q.id})" title="Ver"><i class="bi bi-eye"></i></button>
-                        ${can('edit','quotes') ? `<button class="action-btn edit" onclick="convertQuoteToSale(${q.id})" title="Convertir en Venta"><i class="bi bi-cart4"></i></button>` : ''}
-                        <button class="action-btn print" onclick="printQuote(${q.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
-                        ${can('delete','quotes') ? `<button class="action-btn delete" onclick="deleteQuote(${q.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
-                    </div>
-                </td>
+                <td style="font-weight:700;">${totalFmt(q.total)}</td>
+                <td>${statusBadge}</td>
+                <td>${actionsBtns}</td>
+            </tr>
+            <tr class="tr-compact">
+                <td><div class="td-stack"><span style="font-weight:600;color:var(--info);">${q.folio}</span><span class="td-secondary">${q.date}</span></div></td>
+                <td>${q.client}</td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
+                <td style="font-weight:700;">${totalFmt(q.total)}</td>
+                <td>${statusBadge}</td>
+                <td>${actionsBtns}</td>
             </tr>
         `;
     }).join('') || '<tr><td colspan="7"><div class="empty-state"><i class="bi bi-file-text"></i><h3>No hay cotizaciones</h3><p>Crea cotizaciones desde el Punto de Venta</p></div></td></tr>';
+
+    const mobileEl = document.getElementById('quotesMobileCards');
+    if (mobileEl) {
+        mobileEl.innerHTML = pageItems.map(q => {
+            const itemsSummary = q.items.map(i => `${i.qty}x ${i.name}${i.size ? ' [' + i.size + ']' : ''}`).join(', ');
+            const actions = [];
+            actions.push({ icon: 'bi-eye', class: 'view', label: 'Ver', onclick: `viewQuote(${q.id})` });
+            if (can('edit','quotes')) actions.push({ icon: 'bi-cart4', class: 'convert', label: 'Convertir en Venta', onclick: `convertQuoteToSale(${q.id})` });
+            actions.push({ icon: 'bi-printer', class: 'print', label: 'Imprimir', onclick: `printQuote(${q.id})` });
+            if (can('delete','quotes')) actions.push({ icon: 'bi-trash3', class: 'delete danger', label: 'Eliminar', onclick: `deleteQuote(${q.id})` });
+            return `
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div>
+                        <div class="mobile-card-id" style="color:var(--info);">${q.folio}</div>
+                        <div class="mobile-card-sub">${q.date}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-badge ${q.status === 'Vigente' ? 'pending' : 'inactive'}">${q.status}</span>
+                        ${buildMobileActionsBtn('q-' + q.id, actions)}
+                    </div>
+                </div>
+                <div class="mobile-card-body">
+                    <div class="mobile-card-row">
+                        <i class="bi bi-person"></i>
+                        <span class="mc-value">${q.client}</span>
+                    </div>
+                    <div class="mobile-card-row">
+                        <i class="bi bi-bag"></i>
+                        <span class="mc-value truncate">${itemsSummary}</span>
+                    </div>
+                </div>
+                <div class="mobile-card-footer">
+                    <div class="mobile-card-total">$${q.total.toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+                </div>
+            </div>`;
+        }).join('') || '<div class="empty-state" style="padding:30px;text-align:center;color:var(--gray);"><i class="bi bi-file-text"></i><h3>No hay cotizaciones</h3></div>';
+    }
     
     const pagEl = document.getElementById('quotesPagination');
     if (totalPages > 1) {

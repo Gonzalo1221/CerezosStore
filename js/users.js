@@ -49,6 +49,48 @@ function renderUsers() {
             </tr>
         `;
     }).join('');
+
+    const mobileEl = document.getElementById('usersMobileCards');
+    if (mobileEl) {
+        mobileEl.innerHTML = users.map(u => {
+            const initials = u.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+            const roleIcons = { 'Vendedor': '🛒', 'Administrador': '👑', 'Super Admin': '🔰' };
+            const canEdit = canEditUser(u);
+            const delPerm = canDeleteUser(u);
+            const showDelete = delPerm === true || delPerm === 'requires_super_admin';
+            const statusClass = u.status === 'active' ? 'active' : 'inactive';
+            const statusLabel = u.status === 'active' ? 'Activo' : 'Inactivo';
+            const actions = [];
+            if (canEdit) actions.push({ icon: 'bi-pencil', class: 'edit', label: 'Editar', onclick: `editUser(${u.id})` });
+            if (showDelete) actions.push({ icon: 'bi-trash3', class: 'delete danger', label: 'Eliminar', onclick: `deleteUser(${u.id})` });
+            return `
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="mobile-card-avatar">${initials}</div>
+                        <div>
+                            <div class="mobile-card-id" style="color:var(--dark);">${u.name}</div>
+                            <div class="mobile-card-sub">${roleIcons[u.role] || ''} ${u.role}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>
+                        ${actions.length ? buildMobileActionsBtn('u-' + u.id, actions) : ''}
+                    </div>
+                </div>
+                <div class="mobile-card-body">
+                    <div class="mobile-card-row">
+                        <i class="bi bi-envelope"></i>
+                        <span class="mc-value">${u.email}</span>
+                    </div>
+                    <div class="mobile-card-row">
+                        <i class="bi bi-clock"></i>
+                        <span class="mc-value" style="color:var(--gray);">${u.lastAccess || 'N/A'}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
 }
 
 async function saveUser() {

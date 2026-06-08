@@ -37,6 +37,38 @@ function renderClients() {
             </tr>
         `;
     }).join('') || '<tr><td colspan="' + (showCredit ? 6 : 5) + '"><div class="empty-state"><i class="bi bi-people"></i><h3>No hay clientes registrados</h3><p>Agrega tu primer cliente para empezar</p></div></td></tr>';
+
+    const mobileEl = document.getElementById('clientsMobileCards');
+    if (mobileEl) {
+        mobileEl.innerHTML = filtered.map(c => {
+            const isUnlimited = c.creditLimit === 0;
+            const creditEnabled = c.creditEnabled !== false;
+            const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+            const actions = [];
+            if (can('edit','clients')) actions.push({ icon: 'bi-pencil', class: 'edit', label: 'Editar', onclick: `editClient(${c.id})` });
+            if (can('delete','clients')) actions.push({ icon: 'bi-trash3', class: 'delete danger', label: 'Eliminar', onclick: `deleteClient(${c.id})` });
+            return `
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="mobile-card-avatar">${initials}</div>
+                        <div>
+                            <div class="mobile-card-id" style="color:var(--dark);">${c.name}</div>
+                            <div class="mobile-card-sub">${c.phone || 'Sin teléfono'}</div>
+                        </div>
+                    </div>
+                    ${actions.length ? buildMobileActionsBtn(c.id, actions) : ''}
+                </div>
+                <div class="mobile-card-body">
+                    ${c.email ? `<div class="mobile-card-row"><i class="bi bi-envelope"></i><span class="mc-value">${c.email}</span></div>` : ''}
+                    <div class="mobile-card-row">
+                        <i class="bi bi-credit-card"></i>
+                        <span class="mc-value" style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('') || '<div class="empty-state" style="padding:30px;text-align:center;color:var(--gray);"><i class="bi bi-people"></i><h3>No hay clientes registrados</h3></div>';
+    }
 }
 
 function editClient(id) {

@@ -260,4 +260,38 @@ function recalcClientCredits() {
     });
     saveClients();
 }
+
+// ============ MOBILE CARDS HELPERS ============
+function buildMobileActionsBtn(id, actions, infoHtml, sheetTitle) {
+    if (!actions || actions.length === 0) return '';
+    const btnId = 'mad-' + id + '-' + Math.random().toString(36).slice(2, 6);
+    const title = sheetTitle || 'Detalle';
+    const infoSection = infoHtml ? `<div class="mad-info">${infoHtml}</div>` : '';
+    return `<button class="mobile-actions-btn" onclick="openMobileActions('${btnId}')" aria-label="Acciones"><i class="bi bi-pencil"></i></button>
+    <div class="mad-overlay" id="${btnId}-overlay" onclick="closeMobileActions('${btnId}')"></div>
+    <div class="mobile-actions-dropdown" id="${btnId}">
+        <div class="mad-header"><span>${title}</span><button class="mad-close" onclick="closeMobileActions('${btnId}')"><i class="bi bi-x-lg"></i></button></div>
+        ${infoSection}
+        <div class="mad-section-title">Acciones</div>
+        <div class="mad-actions">
+            ${actions.map(a => `<button class="mad-action-btn ${a.class || ''}" onclick="closeMobileActions('${btnId}');${a.onclick}"><i class="bi ${a.icon}"></i><span>${a.label}</span></button>`).join('')}
+        </div>
+    </div>`;
+}
+
+function openMobileActions(id) {
+    const dropdown = document.getElementById(id);
+    const overlay = document.getElementById(id + '-overlay');
+    if (dropdown) dropdown.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMobileActions(id) {
+    const dropdown = document.getElementById(id);
+    const overlay = document.getElementById(id + '-overlay');
+    if (dropdown) dropdown.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+}
 

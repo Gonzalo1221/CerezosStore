@@ -296,30 +296,98 @@ function renderSalesHistory() {
         const isAnnulled = s.status === 'Anulada';
         const creditStatusClass = isAnnulled ? 'inactive' : (!isCredit ? 'active' : (s.creditRemaining > 0 ? 'pending' : 'paid'));
         const creditStatusLabel = isAnnulled ? 'Anulada' : (!isCredit ? 'Contado' : (s.creditRemaining > 0 ? 'Pendiente' : 'Pagado'));
+        const creditBadge = `<span class="status-badge ${creditStatusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${creditStatusLabel}${isCredit && s.creditRemaining > 0 ? ' $' + s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0}) : ''}</span>`;
+        const totalFmt = (v) => '$' + v.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        const actionsBtns = `
+            <div class="actions-cell">
+                ${isCredit && s.creditRemaining > 0 && can('create','credit_payments') ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}
+                <button class="action-btn view" onclick="viewSaleDetail(${s.id})" title="Ver"><i class="bi bi-receipt"></i></button>
+                ${can('edit','sales') ? `<button class="action-btn edit" onclick="editSale(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
+                <button class="action-btn print" onclick="printSale(${s.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
+                <button class="action-btn download" onclick="downloadSalePdf(${s.id})" title="Descargar PDF"><i class="bi bi-download"></i></button>
+                ${can('delete','sales') ? `<button class="action-btn delete" onclick="deleteSale(${s.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
+            </div>
+        `;
         return `
-            <tr>
-                <td style="font-weight:600;color:var(--primary);">${s.ticket}</td>
+            <tr class="tr-desktop">
+                <td><span style="font-weight:600;color:var(--primary);">${s.ticket}</span></td>
                 <td>${s.date}</td>
                 <td>${s.client}</td>
-                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
                 <td>${s.payMethod}</td>
-                <td>$${s.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
-                <td style="color:var(--gray);">$${s.tax.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
-                <td style="font-weight:700;">$${s.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
-                <td><span class="status-badge ${creditStatusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${creditStatusLabel}${isCredit && s.creditRemaining > 0 ? ' $' + s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0}) : ''}</span></td>
-                <td>
-                    <div class="actions-cell">
-                        ${isCredit && s.creditRemaining > 0 && can('create','credit_payments') ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}
-                        <button class="action-btn view" onclick="viewSaleDetail(${s.id})" title="Ver"><i class="bi bi-receipt"></i></button>
-                        ${can('edit','sales') ? `<button class="action-btn edit" onclick="editSale(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
-                        <button class="action-btn print" onclick="printSale(${s.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
-                        <button class="action-btn download" onclick="downloadSalePdf(${s.id})" title="Descargar PDF"><i class="bi bi-download"></i></button>
-                        ${can('delete','sales') ? `<button class="action-btn delete" onclick="deleteSale(${s.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>` : ''}
-                    </div>
-                </td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
+                <td style="font-weight:700;">${totalFmt(s.subtotal)}</td>
+                <td>${totalFmt(s.tax)}</td>
+                <td style="font-weight:700;">${totalFmt(s.total)}</td>
+                <td>${creditBadge}</td>
+                <td>${actionsBtns}</td>
+            </tr>
+            <tr class="tr-compact">
+                <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${s.date}</span></div></td>
+                <td><div class="td-stack"><span>${s.client}</span><span class="td-secondary">${s.payMethod}</span></div></td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
+                <td><div class="td-stack"><span style="font-weight:700;">${totalFmt(s.total)}</span><span class="td-secondary">${totalFmt(s.subtotal)} + ${totalFmt(s.tax)} IVA</span></div></td>
+                <td>${creditBadge}</td>
+                <td>${actionsBtns}</td>
             </tr>
         `;
     }).join('') || '<tr><td colspan="10"><div class="empty-state"><i class="bi bi-receipt"></i><h3>No hay ventas</h3><p>Las ventas aparecerán aquí</p></div></td></tr>';
+
+    const mobileEl = document.getElementById('salesMobileCards');
+    if (mobileEl) {
+        mobileEl.innerHTML = pageItems.map(s => {
+            const itemsSummary = s.items.map(i => `${i.qty}x ${i.name}${i.size ? ' [' + i.size + ']' : ''}`).join(', ');
+            const isCredit = s.creditType === 'credito';
+            const isAnnulled = s.status === 'Anulada';
+            const creditStatusClass = isAnnulled ? 'inactive' : (!isCredit ? 'active' : (s.creditRemaining > 0 ? 'pending' : 'paid'));
+            const creditStatusLabel = isAnnulled ? 'Anulada' : (!isCredit ? 'Contado' : (s.creditRemaining > 0 ? 'Pendiente' : 'Pagado'));
+            const actions = [];
+            if (isCredit && s.creditRemaining > 0 && can('create','credit_payments')) actions.push({ icon: 'bi-cash-stack', class: 'pay', label: 'Registrar Abono', onclick: `showAbonoModal(${s.id})` });
+            actions.push({ icon: 'bi-receipt', class: 'view', label: 'Ver Detalle', onclick: `viewSaleDetail(${s.id})` });
+            if (can('edit','sales')) actions.push({ icon: 'bi-pencil', class: 'edit', label: 'Editar', onclick: `editSale(${s.id})` });
+            actions.push({ icon: 'bi-printer', class: 'print', label: 'Imprimir', onclick: `printSale(${s.id})` });
+            actions.push({ icon: 'bi-download', class: 'download', label: 'Descargar PDF', onclick: `downloadSalePdf(${s.id})` });
+            if (can('delete','sales')) actions.push({ icon: 'bi-trash3', class: 'delete danger', label: 'Eliminar', onclick: `deleteSale(${s.id})` });
+            const infoHtml = `
+                <div class="mad-info-row"><span class="mad-info-label">Ticket</span><span class="mad-info-value">${s.ticket}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Fecha</span><span class="mad-info-value">${s.date}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Cliente</span><span class="mad-info-value">${s.client}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Método</span><span class="mad-info-value">${s.payMethod}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Subtotal</span><span class="mad-info-value">$${s.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">IVA</span><span class="mad-info-value">$${s.tax.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Total</span><span class="mad-info-value" style="font-size:15px;">$${s.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+            `;
+            return `
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div>
+                        <div class="mobile-card-id">${s.ticket}</div>
+                        <div class="mobile-card-sub">${s.date}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-badge ${creditStatusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${creditStatusLabel}${isCredit && s.creditRemaining > 0 ? ' $' + s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0}) : ''}</span>
+                        ${buildMobileActionsBtn('s-' + s.id, actions, infoHtml, 'Detalle de Venta')}
+                    </div>
+                </div>
+                <div class="mobile-card-body">
+                    <div class="mobile-card-row">
+                        <i class="bi bi-person"></i>
+                        <span class="mc-value">${s.client}</span>
+                    </div>
+                    <div class="mobile-card-row">
+                        <i class="bi bi-bag"></i>
+                        <span class="mc-value truncate">${itemsSummary}</span>
+                    </div>
+                    <div class="mobile-card-row">
+                        <i class="bi bi-wallet2"></i>
+                        <span class="mc-value">${s.payMethod}</span>
+                    </div>
+                </div>
+                <div class="mobile-card-footer">
+                    <div class="mobile-card-total">$${s.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                </div>
+            </div>`;
+        }).join('') || '<div class="empty-state" style="padding:30px;text-align:center;color:var(--gray);"><i class="bi bi-receipt"></i><h3>No hay ventas</h3></div>';
+    }
 
     const pagEl = document.getElementById('salesPagination');
     if (totalPages > 1) {

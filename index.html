@@ -197,20 +197,30 @@
                 <div class="card-body">
                     <div class="table-wrapper">
                         <table class="data-table">
-                            <thead>
+                            <thead class="thead-desktop">
                                 <tr>
                                     <th>Ticket</th>
+                                    <th>Fecha</th>
                                     <th>Cliente</th>
                                     <th>Artículos</th>
                                     <th>Total</th>
                                     <th>Método</th>
-                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <thead class="thead-compact">
+                                <tr>
+                                    <th>Ticket / Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Artículos</th>
+                                    <th>Total / Método</th>
                                     <th>Estado</th>
                                 </tr>
                             </thead>
                             <tbody id="recentSalesBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="recentSalesMobile"></div>
                 </div>
             </div>
         </div>
@@ -266,6 +276,7 @@
                             <tbody id="inventoryTableBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="inventoryMobileCards" style="padding:12px;"></div>
                 </div>
                 <div class="pagination" id="inventoryPagination"></div>
             </div>
@@ -359,13 +370,13 @@
                 <div class="card-body" style="padding:0;">
                     <div class="table-wrapper">
                         <table class="data-table">
-                            <thead>
+                            <thead class="thead-desktop">
                                 <tr>
                                     <th>Ticket</th>
                                     <th>Fecha / Hora</th>
                                     <th>Cliente</th>
+                                    <th>Método</th>
                                     <th>Artículos</th>
-                                    <th>Método Pago</th>
                                     <th>Subtotal</th>
                                     <th>IVA</th>
                                     <th>Total</th>
@@ -373,9 +384,20 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
+                            <thead class="thead-compact">
+                                <tr>
+                                    <th>Ticket / Fecha</th>
+                                    <th>Cliente / Método</th>
+                                    <th>Artículos</th>
+                                    <th>Total / Detalle</th>
+                                    <th>Estado Crédito</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody id="salesHistoryBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="salesMobileCards" style="padding:12px;"></div>
                 </div>
                 <div class="pagination" id="salesPagination"></div>
             </div>
@@ -404,14 +426,24 @@
                 <div class="card-body" style="padding:0;">
                     <div class="table-wrapper">
                         <table class="data-table">
-                            <thead>
+                            <thead class="thead-desktop">
                                 <tr>
                                     <th>Cliente</th>
                                     <th>Teléfono</th>
-                                    <th>Límite Crédito</th>
-                                    <th>Deuda Total</th>
+                                    <th>Límite</th>
+                                    <th>Deuda</th>
                                     <th>Disponible</th>
-                                    <th>Ventas Pendientes</th>
+                                    <th>Ventas</th>
+                                    <th>Uso de Crédito</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <thead class="thead-compact">
+                                <tr>
+                                    <th>Cliente / Teléfono</th>
+                                    <th>Límite / Deuda</th>
+                                    <th>Disponible / Ventas</th>
                                     <th>Uso de Crédito</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
@@ -420,6 +452,7 @@
                             <tbody id="creditsTableBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="creditsMobileCards" style="padding:12px;"></div>
                 </div>
             </div>
             <div class="card" style="margin-top:20px;">
@@ -429,7 +462,7 @@
                 <div class="card-body" style="padding:0;">
                     <div class="table-wrapper">
                         <table class="data-table">
-                            <thead>
+                            <thead class="thead-desktop">
                                 <tr>
                                     <th>Ticket</th>
                                     <th>Fecha</th>
@@ -442,9 +475,21 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
+                            <thead class="thead-compact">
+                                <tr>
+                                    <th>Ticket / Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Total</th>
+                                    <th>Pagado / Restante</th>
+                                    <th>Vencimiento</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody id="pendingCreditsBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="pendingCreditsMobileCards" style="padding:12px;"></div>
                 </div>
             </div>
         </div>
@@ -484,6 +529,7 @@
                             <tbody id="clientsTableBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="clientsMobileCards" style="padding:12px;"></div>
                 </div>
             </div>
         </div>
@@ -577,6 +623,7 @@
                             <tbody id="usersTableBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="usersMobileCards" style="padding:12px;"></div>
                 </div>
             </div>
         </div>
@@ -694,7 +741,7 @@
                 <div class="card-body" style="padding:0;">
                     <div class="table-wrapper">
                         <table class="data-table">
-                            <thead>
+                            <thead class="thead-desktop">
                                 <tr>
                                     <th>Folio</th>
                                     <th>Fecha</th>
@@ -705,9 +752,20 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
+                            <thead class="thead-compact">
+                                <tr>
+                                    <th>Folio / Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Artículos</th>
+                                    <th>Total</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody id="quotesTableBody"></tbody>
                         </table>
                     </div>
+                    <div class="mobile-cards" id="quotesMobileCards" style="padding:12px;"></div>
                     <div id="quotesPagination" class="table-pagination"></div>
                 </div>
             </div>
