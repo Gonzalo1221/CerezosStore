@@ -33,12 +33,16 @@ function renderCredits() {
         const available = isUnlimited ? Infinity : c.creditLimit - c.creditUsed;
         const statusClass = isUnlimited ? 'active' : (pct >= 100 ? 'overdue' : pct >= 80 ? 'pending' : 'active');
         const statusLabel = isUnlimited ? 'Sin límite' : (pct >= 100 ? 'Límite Alcanzado' : pct >= 80 ? 'Alto Uso' : 'Normal');
+        const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+        const statusBadge = `<span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>`;
+        const creditBar = isUnlimited ? '<div style="font-size:11px;color:var(--success);">Sin límite</div>' : `<div style="font-size:12px;margin-bottom:4px;">${pct.toFixed(0)}%</div><div class="credit-bar"><div class="credit-bar-fill ${barClass}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+        const actionsBtns = `<div class="actions-cell">${can('edit','credit_payments') ? `<button class="action-btn edit" onclick="editClientCredit(${c.id})" title="Editar Límite"><i class="bi bi-pencil"></i></button>` : ''}<button class="action-btn view" onclick="viewClientCredits(${c.id})" title="Ver Detalle"><i class="bi bi-eye"></i></button></div>`;
         
         return `
-            <tr style="${!creditEnabled ? 'opacity:0.6;' : ''}">
+            <tr class="tr-desktop" style="${!creditEnabled ? 'opacity:0.6;' : ''}">
                 <td>
                     <div class="product-cell">
-                        <div class="user-avatar" style="width:36px;height:36px;font-size:12px;">${c.name.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
+                        <div class="user-avatar" style="width:36px;height:36px;font-size:12px;">${initials}</div>
                         <div class="product-info">
                             <h4>${c.name} ${!creditEnabled ? '<span style="font-size:10px;color:var(--danger);font-weight:400;">(Crédito desactivado)</span>' : ''}</h4>
                             <small>${c.email || ''}</small>
@@ -47,25 +51,97 @@ function renderCredits() {
                 </td>
                 <td>${c.phone || '-'}</td>
                 <td style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">♾️ Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</td>
-                <td style="font-weight:700;color:var(--warning);">$${c.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                <td style="color:var(--warning);">$${c.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
                 <td style="font-weight:700;color:var(--success);">${isUnlimited ? '♾️ Sin límite' : '$' + available.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
-                <td>${pendingSales.length} ventas</td>
-                <td style="min-width:120px;">
-                    ${isUnlimited ? '<div style="font-size:11px;color:var(--success);">Sin límite</div>' : `<div style="font-size:12px;margin-bottom:4px;">${pct.toFixed(0)}%</div>
-                    <div class="credit-bar">
-                        <div class="credit-bar-fill ${barClass}" style="width:${Math.min(pct, 100)}%"></div>
-                    </div>`}
-                </td>
-                <td><span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span></td>
+                <td>${pendingSales.length} ventas pendientes</td>
+                <td style="min-width:120px;">${creditBar}</td>
+                <td>${statusBadge}</td>
+                <td>${actionsBtns}</td>
+            </tr>
+            <tr class="tr-compact" style="${!creditEnabled ? 'opacity:0.6;' : ''}">
                 <td>
-                    <div class="actions-cell">
-                        ${can('edit','credit_payments') ? `<button class="action-btn edit" onclick="editClientCredit(${c.id})" title="Editar Límite"><i class="bi bi-pencil"></i></button>` : ''}
-                        <button class="action-btn view" onclick="viewClientCredits(${c.id})" title="Ver Detalle"><i class="bi bi-eye"></i></button>
+                    <div class="product-cell">
+                        <div class="user-avatar" style="width:36px;height:36px;font-size:12px;">${initials}</div>
+                        <div class="product-info">
+                            <h4>${c.name} ${!creditEnabled ? '<span style="font-size:10px;color:var(--danger);font-weight:400;">(Crédito desactivado)</span>' : ''}</h4>
+                            <small>${c.phone || ''}</small>
+                        </div>
                     </div>
                 </td>
+                <td><div class="td-stack"><span style="font-weight:600;">${isUnlimited ? '<span style="color:var(--success);">♾️ Ilimitado</span>' : '$' + c.creditLimit.toLocaleString()}</span><span class="td-secondary td-warning">$${c.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})} deuda</span></div></td>
+                <td><div class="td-stack"><span style="font-weight:700;color:var(--success);">${isUnlimited ? '♾️ Sin límite' : '$' + available.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span><span class="td-secondary">${pendingSales.length} ventas pendientes</span></div></td>
+                <td style="min-width:120px;">${creditBar}</td>
+                <td>${statusBadge}</td>
+                <td>${actionsBtns}</td>
             </tr>
         `;
     }).join('') || '<tr><td colspan="9"><div class="empty-state"><i class="bi bi-check-circle"></i><h3>No hay clientes con deuda</h3><p>Ningún cliente tiene créditos pendientes</p></div></td></tr>';
+
+    const mobileEl = document.getElementById('creditsMobileCards');
+    if (mobileEl) {
+        mobileEl.innerHTML = filteredClients.map(c => {
+            const creditEnabled = c.creditEnabled !== false;
+            const isUnlimited = c.creditLimit === 0;
+            const pct = isUnlimited ? 0 : (c.creditUsed / c.creditLimit * 100);
+            const barClass = isUnlimited ? 'safe' : (pct < 50 ? 'safe' : pct < 80 ? 'warning' : 'danger');
+            const available = isUnlimited ? Infinity : c.creditLimit - c.creditUsed;
+            const statusClass = isUnlimited ? 'active' : (pct >= 100 ? 'overdue' : pct >= 80 ? 'pending' : 'active');
+            const statusLabel = isUnlimited ? 'Sin límite' : (pct >= 100 ? 'Límite Alcanzado' : pct >= 80 ? 'Alto Uso' : 'Normal');
+            const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+            const clientPendingSales = sales.filter(s => s.clientId === c.id && s.creditType === 'credito' && s.creditRemaining > 0);
+            const actions = [];
+            if (can('edit','credit_payments')) actions.push({ icon: 'bi-pencil', class: 'edit', label: 'Editar Límite', onclick: `editClientCredit(${c.id})` });
+            actions.push({ icon: 'bi-eye', class: 'view', label: 'Ver Detalle', onclick: `viewClientCredits(${c.id})` });
+            const infoHtml = `
+                <div class="mad-info-row"><span class="mad-info-label">Cliente</span><span class="mad-info-value">${c.name}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Teléfono</span><span class="mad-info-value">${c.phone || '-'}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Email</span><span class="mad-info-value">${c.email || '-'}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Límite</span><span class="mad-info-value">${isUnlimited ? 'Sin límite' : '$' + c.creditLimit.toLocaleString()}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Deuda</span><span class="mad-info-value" style="color:var(--warning);">$${c.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Disponible</span><span class="mad-info-value" style="color:var(--success);">${isUnlimited ? 'Sin límite' : '$' + available.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Ventas pendientes</span><span class="mad-info-value">${clientPendingSales.length}</span></div>
+            `;
+            return `
+            <div class="mobile-card credito-bar" style="${!creditEnabled ? 'opacity:0.6;' : ''}">
+                <div class="mobile-card-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="mobile-card-avatar">${initials}</div>
+                        <div>
+                            <div class="mobile-card-id" style="color:var(--dark);">${c.name} ${!creditEnabled ? '<span style="font-size:10px;color:var(--danger);font-weight:400;">(Desactivado)</span>' : ''}</div>
+                            <div class="mobile-card-sub">${c.phone || ''}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>
+                        ${buildMobileActionsBtn('cr-' + c.id, actions, infoHtml, 'Detalle de Crédito')}
+                    </div>
+                </div>
+                <div class="mobile-card-body">
+                    <div style="display:flex;justify-content:space-between;gap:8px;">
+                        <div class="mobile-card-row" style="flex:1;">
+                            <i class="bi bi-cash"></i>
+                            <div>
+                                <span class="mc-label" style="display:block;font-size:10px;">Deuda</span>
+                                <span class="mc-value" style="color:var(--warning);font-weight:700;">$${c.creditUsed.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>
+                        </div>
+                        <div class="mobile-card-row" style="flex:1;">
+                            <i class="bi bi-wallet2"></i>
+                            <div>
+                                <span class="mc-label" style="display:block;font-size:10px;">Disponible</span>
+                                <span class="mc-value" style="color:var(--success);font-weight:700;">${isUnlimited ? '♾️' : '$' + available.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${!isUnlimited ? `
+                    <div style="margin-top:4px;">
+                        <div style="font-size:11px;color:var(--gray);margin-bottom:4px;">Uso: ${pct.toFixed(0)}%</div>
+                        <div class="mc-bar-track"><div class="mc-bar-fill ${barClass}" style="width:${Math.min(pct, 100)}%"></div></div>
+                    </div>` : '<div style="font-size:11px;color:var(--success);margin-top:4px;">Sin límite de crédito</div>'}
+                </div>
+            </div>`;
+        }).join('') || '<div class="empty-state" style="padding:30px;text-align:center;color:var(--gray);"><i class="bi bi-check-circle"></i><h3>No hay clientes con deuda</h3></div>';
+    }
     
     // Pending credits table
     const pendingBody = document.getElementById('pendingCreditsBody');
@@ -75,28 +151,87 @@ function renderCredits() {
         const isOverdue = s.creditDueDate && new Date(s.creditDueDate) < new Date();
         const statusClass = isOverdue ? 'overdue' : 'pending';
         const statusLabel = isOverdue ? 'Vencido' : 'Pendiente';
+        const totalFmt = (v) => '$' + v.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        const statusBadge = `<span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>`;
+        const actionsBtns = `<div class="actions-cell">${can('create','credit_payments') ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}<button class="action-btn view" onclick="viewSaleCreditDetail(${s.id})" title="Ver Detalle"><i class="bi bi-eye"></i></button><button class="action-btn print" onclick="printSale(${s.id})" title="Imprimir"><i class="bi bi-printer"></i></button><button class="action-btn download" onclick="downloadSalePdf(${s.id})" title="Descargar PDF"><i class="bi bi-download"></i></button></div>`;
         
         return `
-            <tr>
-                <td style="font-weight:600;color:var(--primary);">${s.ticket}</td>
+            <tr class="tr-desktop">
+                <td><span style="font-weight:600;color:var(--primary);">${s.ticket}</span></td>
                 <td>${s.date}</td>
                 <td>${s.client}</td>
-                <td style="font-weight:700;">$${s.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
-                ${s.downPayment > 0 ? `<td style="color:var(--success);">$${s.downPayment.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>` : '<td>-</td>'}
-                <td style="font-weight:700;color:var(--danger);">$${s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                <td style="font-weight:700;">${totalFmt(s.total)}</td>
+                <td style="color:var(--success);">${totalFmt(s.total - s.creditRemaining)}</td>
+                <td style="color:var(--danger);">${totalFmt(s.creditRemaining)}</td>
                 <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${s.creditDueDate || '-'}</td>
-                <td><span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span></td>
-                <td>
-                    <div class="actions-cell">
-                        ${can('create','credit_payments') ? `<button class="action-btn pay" onclick="showAbonoModal(${s.id})" title="Registrar Abono"><i class="bi bi-cash-stack"></i></button>` : ''}
-                        <button class="action-btn view" onclick="viewSaleCreditDetail(${s.id})" title="Ver Detalle"><i class="bi bi-eye"></i></button>
-                        <button class="action-btn print" onclick="printSale(${s.id})" title="Imprimir"><i class="bi bi-printer"></i></button>
-                        <button class="action-btn download" onclick="downloadSalePdf(${s.id})" title="Descargar PDF"><i class="bi bi-download"></i></button>
-                    </div>
-                </td>
+                <td>${statusBadge}</td>
+                <td>${actionsBtns}</td>
+            </tr>
+            <tr class="tr-compact">
+                <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${s.date}</span></div></td>
+                <td>${s.client}</td>
+                <td style="font-weight:700;">${totalFmt(s.total)}</td>
+                <td><div class="td-stack"><span style="color:var(--success);">${totalFmt(s.total - s.creditRemaining)}</span><span class="td-secondary td-danger">${totalFmt(s.creditRemaining)} restante</span></div></td>
+                <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${s.creditDueDate || '-'}</td>
+                <td>${statusBadge}</td>
+                <td>${actionsBtns}</td>
             </tr>
         `;
     }).join('') || '<tr><td colspan="9"><div class="empty-state"><i class="bi bi-check-circle"></i><h3>No hay créditos pendientes</h3><p>Todos los créditos están al día</p></div></td></tr>';
+
+    const pendingMobileEl = document.getElementById('pendingCreditsMobileCards');
+    if (pendingMobileEl) {
+        pendingMobileEl.innerHTML = pendingSales.map(s => {
+            const isOverdue = s.creditDueDate && new Date(s.creditDueDate) < new Date();
+            const statusClass = isOverdue ? 'overdue' : 'pending';
+            const statusLabel = isOverdue ? 'Vencido' : 'Pendiente';
+            const actions = [];
+            if (can('create','credit_payments')) actions.push({ icon: 'bi-cash-stack', class: 'pay', label: 'Registrar Abono', onclick: `showAbonoModal(${s.id})` });
+            actions.push({ icon: 'bi-eye', class: 'view', label: 'Ver Detalle', onclick: `viewSaleCreditDetail(${s.id})` });
+            actions.push({ icon: 'bi-printer', class: 'print', label: 'Imprimir', onclick: `printSale(${s.id})` });
+            actions.push({ icon: 'bi-download', class: 'download', label: 'Descargar PDF', onclick: `downloadSalePdf(${s.id})` });
+            const infoHtml = `
+                <div class="mad-info-row"><span class="mad-info-label">Ticket</span><span class="mad-info-value">${s.ticket}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Fecha</span><span class="mad-info-value">${s.date}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Cliente</span><span class="mad-info-value">${s.client}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Total</span><span class="mad-info-value" style="font-size:15px;">$${s.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Pagado</span><span class="mad-info-value" style="color:var(--success);">$${(s.total - s.creditRemaining).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Restante</span><span class="mad-info-value" style="color:var(--danger);">$${s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Vencimiento</span><span class="mad-info-value" style="${isOverdue ? 'color:var(--danger);' : ''}">${s.creditDueDate || '-'}</span></div>
+            `;
+            return `
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div>
+                        <div class="mobile-card-id">${s.ticket}</div>
+                        <div class="mobile-card-sub">${s.client} · ${s.date}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>
+                        ${buildMobileActionsBtn('pcs-' + s.id, actions, infoHtml, 'Detalle de Crédito')}
+                    </div>
+                </div>
+                <div class="mobile-card-body">
+                    <div style="display:flex;justify-content:space-between;gap:8px;">
+                        <div class="mobile-card-row" style="flex:1;">
+                            <i class="bi bi-cash"></i>
+                            <div>
+                                <span class="mc-label" style="display:block;font-size:10px;">Restante</span>
+                                <span class="mc-value" style="color:var(--danger);font-weight:700;">$${s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>
+                        </div>
+                        <div class="mobile-card-row" style="flex:1;">
+                            <i class="bi bi-calendar"></i>
+                            <div>
+                                <span class="mc-label" style="display:block;font-size:10px;">Vencimiento</span>
+                                <span class="mc-value" style="${isOverdue ? 'color:var(--danger);font-weight:700;' : ''}">${s.creditDueDate || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
 }
 
 function showAbonoModal(saleId) {
