@@ -130,8 +130,7 @@
         .btn-info { background: var(--info); color: var(--white); }
         .btn-info:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(37,99,235,0.25); }
         .btn-sm { padding: 8px 14px; font-size: 12px; border-radius: 8px; }
-        .login-footer { text-align: center; margin-top: 24px; color: var(--gray); font-size: 12px; }
-        .login-footer span { color: var(--primary); font-weight: 600; }
+        .login-footer { text-align: center; margin-top: 24px; color: var(--gray); font-size: 11px; letter-spacing: 0.3px; }
 
         /* ============ LOADER ============ */
         .loader-overlay {
