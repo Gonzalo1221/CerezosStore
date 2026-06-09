@@ -60,7 +60,7 @@ function buildReceiptBody(sale) {
         </div>
         <h2 style="text-align:center;margin:0 0 2px 0;font-size:14px;letter-spacing:1px;">${businessName.toUpperCase()}</h2>
         <div class="receipt-sub" style="text-align:center;color:#666;font-size:10px;margin-bottom:6px;">${businessAddress}<br>Tel: ${businessPhone}${businessRfc ? '<br>RFC: ' + businessRfc : ''}</div>
-        <div style="text-align:center;margin-bottom:6px;font-size:11px;"><strong>${sale.ticket}</strong> · ${sale.date}</div>
+        <div style="text-align:center;margin-bottom:6px;font-size:11px;"><strong>${sale.ticket}</strong> · ${formatDate(sale.date)}</div>
         <div style="text-align:center;margin-bottom:6px;font-size:10px;">Cliente: ${sale.client}</div>
         ${isCredit ? '<div style="text-align:center;margin-bottom:6px;font-size:10px;background:#fff3cd;color:#856404;padding:3px;border-radius:3px;"> VENTA A CRÉDITO</div>' : ''}
         ${isCredit && sale.creditInstallments > 1 ? `<div style="text-align:center;margin-bottom:4px;font-size:10px;color:#856404;">${sale.creditInstallments} cuotas de $${sale.creditInstallmentValue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>` : ''}
@@ -108,7 +108,7 @@ function printCurrentSale() {
 function getSalePlainText(sale) {
     const isCredit = sale.creditType === 'credito';
     const ivaPct = sale.subtotal ? Math.round((sale.tax / sale.subtotal) * 100) : ivaRate;
-    let text = `${businessName.toUpperCase()}\n${businessAddress}\nTel: ${businessPhone}${businessRfc ? ' · RFC: ' + businessRfc : ''}\n${sale.ticket} · ${sale.date}\nCliente: ${sale.client}\n`;
+    let text = `${businessName.toUpperCase()}\n${businessAddress}\nTel: ${businessPhone}${businessRfc ? ' · RFC: ' + businessRfc : ''}\n${sale.ticket} · ${formatDate(sale.date)}\nCliente: ${sale.client}\n`;
     if (isCredit) text += `*** VENTA A CREDITO ***\n`;
     if (isCredit && sale.creditInstallments > 1) text += `${sale.creditInstallments} cuotas de $${sale.creditInstallmentValue.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`;
     text += `\nArticulos:\n`;
@@ -184,7 +184,7 @@ async function downloadSalePdf(saleId) {
 
         center(sale.ticket, 7, 'bold');
         pdf.setFontSize(7); pdf.setFont('helvetica', 'normal');
-        pdf.text(sale.date, PW / 2, y, { align: 'center' }); y += 3.5;
+        pdf.text(formatDate(sale.date), PW / 2, y, { align: 'center' }); y += 3.5;
         pdf.text('Cliente: ' + sale.client, PW / 2, y, { align: 'center' }); y += 5;
 
         if (isCredit) { center('*** VENTA A CREDITO ***', 7, 'bold'); y += 1; }
@@ -311,7 +311,7 @@ function renderSalesHistory() {
         return `
             <tr class="tr-desktop">
                 <td><span style="font-weight:600;color:var(--primary);">${s.ticket}</span></td>
-                <td>${s.date}</td>
+                <td>${formatDate(s.date)}</td>
                 <td>${s.client}</td>
                 <td>${s.payMethod}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
@@ -322,7 +322,7 @@ function renderSalesHistory() {
                 <td>${actionsBtns}</td>
             </tr>
             <tr class="tr-compact">
-                <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${s.date}</span></div></td>
+                <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${formatDate(s.date)}</span></div></td>
                 <td><div class="td-stack"><span>${s.client}</span><span class="td-secondary">${s.payMethod}</span></div></td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
                 <td><div class="td-stack"><span style="font-weight:700;">${totalFmt(s.total)}</span><span class="td-secondary">${totalFmt(s.subtotal)} + ${totalFmt(s.tax)} IVA</span></div></td>
@@ -349,7 +349,7 @@ function renderSalesHistory() {
             if (can('delete','sales')) actions.push({ icon: 'bi-trash3', class: 'delete danger', label: 'Eliminar', onclick: `deleteSale(${s.id})` });
             const infoHtml = `
                 <div class="mad-info-row"><span class="mad-info-label">Ticket</span><span class="mad-info-value">${s.ticket}</span></div>
-                <div class="mad-info-row"><span class="mad-info-label">Fecha</span><span class="mad-info-value">${s.date}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Fecha</span><span class="mad-info-value">${formatDate(s.date)}</span></div>
                 <div class="mad-info-row"><span class="mad-info-label">Cliente</span><span class="mad-info-value">${s.client}</span></div>
                 <div class="mad-info-row"><span class="mad-info-label">Método</span><span class="mad-info-value">${s.payMethod}</span></div>
                 <div class="mad-info-row"><span class="mad-info-label">Subtotal</span><span class="mad-info-value">$${s.subtotal.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
@@ -361,7 +361,7 @@ function renderSalesHistory() {
                 <div class="mobile-card-header">
                     <div>
                         <div class="mobile-card-id">${s.ticket}</div>
-                        <div class="mobile-card-sub">${s.date}</div>
+                        <div class="mobile-card-sub">${formatDate(s.date)}</div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span class="status-badge ${creditStatusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${creditStatusLabel}${isCredit && s.creditRemaining > 0 ? ' $' + s.creditRemaining.toLocaleString('es-MX', {minimumFractionDigits: 0}) : ''}</span>
@@ -423,7 +423,7 @@ function deleteSale(id) {
     pendingSaleActionId = id;
     const sale = sales.find(s => s.id === id);
     if (!sale) return;
-    document.getElementById('saleActionTicket').textContent = sale.ticket + ' · ' + sale.date;
+    document.getElementById('saleActionTicket').textContent = sale.ticket + ' · ' + formatDate(sale.date);
     const clientName = sale.client || 'Consumidor Final';
     const totalStr = '$' + sale.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
     document.getElementById('saleActionInfo').textContent = 'Cliente: ' + clientName + ' · Total: ' + totalStr;

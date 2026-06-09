@@ -158,7 +158,7 @@ function renderCredits() {
         return `
             <tr class="tr-desktop">
                 <td><span style="font-weight:600;color:var(--primary);">${s.ticket}</span></td>
-                <td>${s.date}</td>
+                <td>${formatDate(s.date)}</td>
                 <td>${s.client}</td>
                 <td style="font-weight:700;">${totalFmt(s.total)}</td>
                 <td style="color:var(--success);">${totalFmt(s.total - s.creditRemaining)}</td>
@@ -168,7 +168,7 @@ function renderCredits() {
                 <td>${actionsBtns}</td>
             </tr>
             <tr class="tr-compact">
-                <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${s.date}</span></div></td>
+                <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${formatDate(s.date)}</span></div></td>
                 <td>${s.client}</td>
                 <td style="font-weight:700;">${totalFmt(s.total)}</td>
                 <td><div class="td-stack"><span style="color:var(--success);">${totalFmt(s.total - s.creditRemaining)}</span><span class="td-secondary td-danger">${totalFmt(s.creditRemaining)} restante</span></div></td>
@@ -192,7 +192,7 @@ function renderCredits() {
             actions.push({ icon: 'bi-download', class: 'download', label: 'Descargar PDF', onclick: `downloadSalePdf(${s.id})` });
             const infoHtml = `
                 <div class="mad-info-row"><span class="mad-info-label">Ticket</span><span class="mad-info-value">${s.ticket}</span></div>
-                <div class="mad-info-row"><span class="mad-info-label">Fecha</span><span class="mad-info-value">${s.date}</span></div>
+                <div class="mad-info-row"><span class="mad-info-label">Fecha</span><span class="mad-info-value">${formatDate(s.date)}</span></div>
                 <div class="mad-info-row"><span class="mad-info-label">Cliente</span><span class="mad-info-value">${s.client}</span></div>
                 <div class="mad-info-row"><span class="mad-info-label">Total</span><span class="mad-info-value" style="font-size:15px;">$${s.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
                 <div class="mad-info-row"><span class="mad-info-label">Pagado</span><span class="mad-info-value" style="color:var(--success);">$${(s.total - s.creditRemaining).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></div>
@@ -204,7 +204,7 @@ function renderCredits() {
                 <div class="mobile-card-header">
                     <div>
                         <div class="mobile-card-id">${s.ticket}</div>
-                        <div class="mobile-card-sub">${s.client} · ${s.date}</div>
+                        <div class="mobile-card-sub">${s.client} · ${formatDate(s.date)}</div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>
@@ -367,7 +367,7 @@ function viewClientCredits(clientId) {
                 <tbody>
                     ${clientPayments.map(p => `
                         <tr>
-                            <td>${p.date}</td>
+                            <td>${formatDate(p.date)}</td>
                             <td style="color:var(--primary);">${p.ticket}</td>
                             <td style="font-weight:700;color:var(--success);">$${p.amount.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
                             <td>${p.payMethod}</td>
@@ -391,7 +391,7 @@ function viewSaleCreditDetail(saleId) {
     content.innerHTML = `
         <div style="text-align:center;margin-bottom:16px;">
             <h2 style="font-size:18px;">${sale.ticket}</h2>
-            <p style="color:var(--gray);font-size:12px;">${sale.date} · ${sale.client}</p>
+            <p style="color:var(--gray);font-size:12px;">${formatDate(sale.date)} · ${sale.client}</p>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
             <div style="background:var(--dark3);padding:12px;border-radius:10px;">
@@ -437,7 +437,7 @@ function viewSaleCreditDetail(saleId) {
                 <tbody>
                     ${clientPayments.map(p => `
                         <tr>
-                            <td>${p.date}</td>
+                            <td>${formatDate(p.date)}</td>
                             <td style="font-weight:700;color:var(--success);">$${p.amount.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
                             <td>${p.payMethod}</td>
                             <td style="color:var(--gray);">${p.notes || '-'}</td>

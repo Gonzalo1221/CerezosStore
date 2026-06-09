@@ -702,7 +702,7 @@ function showQuoteReceipt(quote) {
             <div style="text-align:center;font-weight:700;">${businessName}</div>
             <div style="text-align:center;font-size:10px;color:var(--gray);">${businessAddress}<br>Tel: ${businessPhone}${businessRfc ? ' · RFC: '+businessRfc : ''}</div>
             <div style="text-align:center;font-weight:600;margin:6px 0;">${quote.folio}</div>
-            <div style="text-align:center;font-size:10px;color:var(--gray);">${quote.date} · ${quote.client}</div>
+            <div style="text-align:center;font-size:10px;color:var(--gray);">${formatDate(quote.date)} · ${quote.client}</div>
             <hr style="border-color:var(--dark3);margin:6px 0;">
             <table style="width:100%;font-size:10px;">${itemsHtml}</table>
             <hr style="border-color:var(--dark3);margin:6px 0;">
@@ -716,7 +716,7 @@ function showQuoteReceipt(quote) {
         </div>
     `;
     document.getElementById('saleCompleteTotal').textContent = '$' + quote.total.toLocaleString('es-MX', {minimumFractionDigits:0,maximumFractionDigits:0});
-    document.getElementById('saleCompleteTicket').textContent = quote.folio + ' · ' + quote.date;
+    document.getElementById('saleCompleteTicket').textContent = quote.folio + ' · ' + formatDate(quote.date);
     // Override sale complete buttons for quote context
     const footer = document.querySelector('#saleCompleteModal .modal-footer');
     footer.innerHTML = `
@@ -778,7 +778,7 @@ function renderQuotes() {
         return `
             <tr class="tr-desktop">
                 <td><span style="font-weight:600;color:var(--info);">${q.folio}</span></td>
-                <td>${q.date}</td>
+                <td>${formatDate(q.date)}</td>
                 <td>${q.client}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
                 <td style="font-weight:700;">${totalFmt(q.total)}</td>
@@ -786,7 +786,7 @@ function renderQuotes() {
                 <td>${actionsBtns}</td>
             </tr>
             <tr class="tr-compact">
-                <td><div class="td-stack"><span style="font-weight:600;color:var(--info);">${q.folio}</span><span class="td-secondary">${q.date}</span></div></td>
+                <td><div class="td-stack"><span style="font-weight:600;color:var(--info);">${q.folio}</span><span class="td-secondary">${formatDate(q.date)}</span></div></td>
                 <td>${q.client}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${itemsSummary}">${itemsSummary}</td>
                 <td style="font-weight:700;">${totalFmt(q.total)}</td>
@@ -810,7 +810,7 @@ function renderQuotes() {
                 <div class="mobile-card-header">
                     <div>
                         <div class="mobile-card-id" style="color:var(--info);">${q.folio}</div>
-                        <div class="mobile-card-sub">${q.date}</div>
+                        <div class="mobile-card-sub">${formatDate(q.date)}</div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span class="status-badge ${q.status === 'Vigente' ? 'pending' : 'inactive'}">${q.status}</span>
@@ -908,7 +908,7 @@ function showSaleReceipt(sale) {
     receiptEl.innerHTML = buildReceiptBody(sale);
 
     document.getElementById('saleCompleteTotal').textContent = '$' + sale.total.toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-    document.getElementById('saleCompleteTicket').textContent = sale.ticket + ' · ' + sale.date;
+    document.getElementById('saleCompleteTicket').textContent = sale.ticket + ' · ' + formatDate(sale.date);
     // Restore default sale footer buttons
     const footer = document.querySelector('#saleCompleteModal .modal-footer');
     footer.innerHTML = `

@@ -84,7 +84,7 @@ function renderDashboard() {
     recentBody.innerHTML = recent.map(s => `
         <tr class="tr-desktop">
             <td><span style="font-weight:600;color:var(--primary);">${s.ticket}</span></td>
-            <td>${s.date}</td>
+            <td>${formatDate(s.date)}</td>
             <td>${s.client}</td>
             <td>${s.items.reduce((sum, i) => sum + i.qty, 0)} artículos</td>
             <td><span style="font-weight:700;">${totalFmt(s.total)}</span></td>
@@ -92,7 +92,7 @@ function renderDashboard() {
             <td>${statusBadge(s)}</td>
         </tr>
         <tr class="tr-compact">
-            <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${s.date}</span></div></td>
+            <td><div class="td-stack"><span style="font-weight:600;color:var(--primary);">${s.ticket}</span><span class="td-secondary">${formatDate(s.date)}</span></div></td>
             <td>${s.client}</td>
             <td>${s.items.reduce((sum, i) => sum + i.qty, 0)} artículos</td>
             <td><div class="td-stack"><span style="font-weight:700;">${totalFmt(s.total)}</span><span class="td-secondary">${s.payMethod}</span></div></td>
@@ -110,7 +110,7 @@ function renderDashboard() {
                 <div class="mobile-card-header">
                     <div>
                         <div class="mobile-card-id">${s.ticket}</div>
-                        <div class="mobile-card-sub">${s.date}</div>
+                        <div class="mobile-card-sub">${formatDate(s.date)}</div>
                     </div>
                     <span class="status-badge ${statusClass}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> ${statusLabel}</span>
                 </div>
