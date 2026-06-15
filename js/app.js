@@ -82,6 +82,7 @@ function navigateTo(page, el) {
     if (page === 'dashboard') renderDashboard();
     if (page === 'quotes') renderQuotes();
     if (page === 'brandscat') renderBrandsCategories();
+    localStorage.setItem('cs_current_page', page);
 }
 
 function toggleSidebar() {
@@ -247,6 +248,14 @@ function initApp() {
     renderReports();
     updateInventoryCount();
     updateClientsDropdown();
+
+    const savedPage = localStorage.getItem('cs_current_page') || 'dashboard';
+    const navItem = document.querySelector(`.nav-item[data-page="${savedPage}"]`);
+    if (navItem && navItem.style.display !== 'none') {
+        navigateTo(savedPage, navItem);
+    } else {
+        navigateTo('dashboard', document.querySelector('.nav-item[data-page="dashboard"]'));
+    }
 }
 
 function updateInventoryCount() {
