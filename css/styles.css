@@ -627,7 +627,7 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 16px 0; flex-wrap: wrap; gap: 10px;
         }
-        .pagination-info { font-size: 12px; color: var(--gray); }
+        .pagination-info { font-size: 12px; padding-left: 10px; color: var(--gray); }
         .pagination-btns { display: flex; gap: 4px; }
         .page-btn {
             width: 34px; height: 34px; border: 1px solid var(--dark3);
