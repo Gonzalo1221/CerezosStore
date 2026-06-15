@@ -433,6 +433,13 @@ function editSale(saleId) {
         document.getElementById('creditDownPayment').value = sale.downPayment || 0;
         document.getElementById('creditInstallments').value = sale.creditInstallments || 1;
         updateCreditInfo();
+
+        // Overwrite recalculated values with stored values from DB
+        const totalFmt = (v) => '$' + parseFloat(v).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        document.getElementById('checkoutTotal').textContent = totalFmt(sale.total) + ' (financiado)';
+        document.getElementById('creditRemaining').textContent = totalFmt(sale.creditBaseFinanced);
+        document.getElementById('creditInterestAmount').textContent = '+' + totalFmt(sale.creditInterestAmount);
+        document.getElementById('creditInstallmentValue').textContent = totalFmt(sale.creditInstallmentValue) + ' x ' + sale.creditInstallments;
     }
     
     // Hide "Registrar Nuevo Cliente" button
