@@ -428,11 +428,6 @@ function editSale(saleId) {
     });
     document.getElementById('checkoutNotes').value = sale.notes || '';
     
-    // Restore manual total if the sale had one
-    if (sale.manualTotal) {
-        manualTotalOverride = sale.manualTotal;
-    }
-    
     if (sale.creditType === 'credito') {
         toggleCreditOptions();
         document.getElementById('creditDownPayment').value = sale.downPayment || 0;
@@ -440,9 +435,20 @@ function editSale(saleId) {
         updateCreditInfo();
     }
     
+    // Hide "Registrar Nuevo Cliente" button
+    const clientBtn = document.querySelector('#checkoutClient + button, #checkoutClient ~ button');
+    if (clientBtn) clientBtn.style.display = 'none';
+    
+    // Disable payment method radios
+    document.querySelectorAll('input[name="payMethod"]').forEach(r => {
+        r.disabled = true;
+    });
+    
+    // Disable client dropdown
+    document.getElementById('checkoutClient').disabled = true;
+    
     document.getElementById('confirmSaleBtn').innerHTML = '<i class="bi bi-check-lg"></i> Actualizar Venta';
     document.querySelector('#checkoutModal .modal-header h3').innerHTML = '✏️ Editar Venta #' + sale.id;
-    document.getElementById('checkoutClient').disabled = true;
     showModal('checkoutModal');
 }
 
@@ -483,10 +489,17 @@ function cancelEditSale() {
         document.getElementById('creditInterestAmount').textContent = '$0';
         document.getElementById('creditInstallmentValue').textContent = '$0';
         manualTotalOverride = null;
+
+        // Restore elements hidden/disabled during edit mode
+        document.querySelectorAll('input[name="payMethod"]').forEach(r => {
+            r.disabled = false;
+        });
+        const clientBtn = document.querySelector('#checkoutClient + button, #checkoutClient ~ button');
+        if (clientBtn) clientBtn.style.display = '';
     }
 }
 
-function completeSale() {
+async function completeSale() {
     if (cart.length === 0) return;
     const clientIdVal = document.getElementById('checkoutClient').value;
     const client = clientIdVal ? clients.find(c => c.id === parseInt(clientIdVal)) : null;
@@ -513,7 +526,6 @@ function completeSale() {
     let creditBaseFinanced = 0;
     let creditInterestAmount = 0;
     let creditInstallmentValue = 0;
-    let manualTotal = null;
     
     if (payMethod === 'Crédito' && client) {
         creditType = 'credito';
@@ -521,7 +533,6 @@ function completeSale() {
         creditInstallments = parseInt(document.getElementById('creditInstallments').value) || 1;
         const wasManuallySet = manualTotalOverride !== null;
         if (wasManuallySet) {
-            manualTotal = manualTotalOverride;
             total = manualTotalOverride;
             manualTotalOverride = null;
         }
@@ -599,8 +610,7 @@ function completeSale() {
         creditInterestRate,
         creditBaseFinanced,
         creditInterestAmount,
-        creditInstallmentValue,
-        manualTotal
+        creditInstallmentValue
     };
 
     // Update stock
@@ -617,8 +627,14 @@ function completeSale() {
     } else {
         sales.push(sale);
     }
-    saveSales();
-    saveProducts().catch(e => console.warn('saveProducts:', e));
+
+    try {
+        await saveSales();
+        await saveProducts();
+    } catch (e) {
+        showToast('Error al guardar: ' + e.message, 'error');
+        return;
+    }
 
     // Show receipt
     showSaleReceipt(sale);
@@ -645,6 +661,14 @@ function completeSale() {
     document.getElementById('creditRemaining').textContent = '$0';
     document.getElementById('creditInterestAmount').textContent = '$0';
     document.getElementById('creditInstallmentValue').textContent = '$0';
+
+    // Restore elements that may have been hidden/disabled during edit
+    document.querySelectorAll('input[name="payMethod"]').forEach(r => {
+        r.disabled = false;
+    });
+    const clientBtn = document.querySelector('#checkoutClient + button, #checkoutClient ~ button');
+    if (clientBtn) clientBtn.style.display = '';
+
     renderCart();
     renderPosProducts();
     renderInventory();

@@ -430,7 +430,7 @@ function deleteSale(id) {
     showModal('saleActionModal');
 }
 
-function annulSale() {
+async function annulSale() {
     const id = pendingSaleActionId;
     const sale = sales.find(s => s.id === id);
     if (!sale) { hideModal('saleActionModal'); return; }
@@ -451,24 +451,34 @@ function annulSale() {
             client.creditUsed = Math.max(0, (client.creditUsed || 0) - (sale.creditRemaining || 0));
         }
     }
-    saveSales();
-    saveProducts().catch(e => console.warn('saveProducts:', e));
-    saveClients();
+    try {
+        await saveSales();
+        await saveProducts();
+        await saveClients();
+    } catch (e) {
+        showToast('Error al anular venta: ' + e.message, 'error');
+        return;
+    }
     reRenderCurrentPage();
     hideModal('saleActionModal');
     pendingSaleActionId = null;
     showToast('Venta anulada · Stock restituido', 'warning');
 }
 
-function deleteSaleConfirmed() {
+async function deleteSaleConfirmed() {
     const id = pendingSaleActionId;
     sales = sales.filter(s => s.id !== id);
     creditPayments = creditPayments.filter(cp => cp.saleId !== id);
     recalcClientCredits();
-    saveSales();
-    saveCreditPayments();
-    apiDelete('sales', id);
-    apiDelete('credit_payments', null, { column: 'sale_id', values: [id] }).catch(() => {});
+    try {
+        await saveSales();
+        await saveCreditPayments();
+        await apiDelete('sales', id);
+        await apiDelete('credit_payments', null, { column: 'sale_id', values: [id] }).catch(() => {});
+    } catch (e) {
+        showToast('Error al eliminar venta: ' + e.message, 'error');
+        return;
+    }
     reRenderCurrentPage();
     hideModal('saleActionModal');
     pendingSaleActionId = null;

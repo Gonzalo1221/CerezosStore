@@ -257,7 +257,7 @@ function showAbonoModal(saleId) {
     showModal('abonoModal');
 }
 
-function processAbono() {
+async function processAbono() {
     const sale = sales.find(s => s.id === currentAbonoSaleId);
     if (!sale) return;
     
@@ -278,7 +278,6 @@ function processAbono() {
         payMethod,
         notes
     });
-    saveCreditPayments();
     
     // Update sale
     sale.creditRemaining -= amount;
@@ -286,15 +285,22 @@ function processAbono() {
         sale.creditRemaining = 0;
         sale.status = 'Completada';
     }
-    saveSales();
     
     // Update client credit
     if (sale.clientId) {
         const client = clients.find(c => c.id === sale.clientId);
         if (client) {
             client.creditUsed = Math.max(0, client.creditUsed - amount);
-            saveClients();
         }
+    }
+    
+    try {
+        await saveCreditPayments();
+        await saveSales();
+        await saveClients();
+    } catch (e) {
+        showToast('Error al guardar abono: ' + e.message, 'error');
+        return;
     }
     
     hideModal('abonoModal');
@@ -312,7 +318,7 @@ function editClientCredit(clientId) {
     showModal('editClientCreditModal');
 }
 
-function saveClientCredit() {
+async function saveClientCredit() {
     const client = clients.find(c => c.id === currentEditClientId);
     if (!client) return;
     if (!can('edit', 'credit_payments')) { showToast('No tienes permiso para modificar límites de crédito', 'error'); return; }
@@ -321,7 +327,12 @@ function saveClientCredit() {
     if (isNaN(newLimit) || newLimit < 0) { showToast('Ingresa un límite válido (0 = sin límite)', 'error'); return; }
     
     client.creditLimit = newLimit;
-    saveClients();
+    try {
+        await saveClients();
+    } catch (e) {
+        showToast('Error al guardar: ' + e.message, 'error');
+        return;
+    }
     hideModal('editClientCreditModal');
     showToast('Límite de crédito actualizado', 'success');
     reRenderCurrentPage();

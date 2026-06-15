@@ -17,6 +17,10 @@ async function apiPost(path, body, timeoutMs = 15000) {
             body: body ? JSON.stringify(body) : undefined,
             signal: controller.signal
         });
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`Error del servidor (${res.status}): ${text || res.statusText}`);
+        }
         return res.json();
     } finally {
         clearTimeout(timer);

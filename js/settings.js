@@ -184,15 +184,15 @@ function saveSettings() {
 async function saveProducts() {
     await apiUpsert('products', products);
 }
-async function saveSales() { try { await apiUpsert('sales', sales); } catch (e) { console.warn('saveSales:', e); } }
-async function saveQuotes() { try { await apiUpsert('quotes', quotes); } catch (e) { console.warn('saveQuotes:', e); } }
+async function saveSales() { await apiUpsert('sales', sales); }
+async function saveQuotes() { await apiUpsert('quotes', quotes); }
 function loadQuotes(data) { quotes = (data || []).map(q => ({ ...q, items: q.items || [] })); }
-async function saveUsers() { try { await apiUpsert('users', users); } catch (e) { console.warn('saveUsers:', e); } }
-async function saveClients() { try { await apiUpsert('clients', clients); } catch (e) { console.warn('saveClients:', e); } }
-async function saveCreditPayments() { try { await apiUpsert('credit_payments', creditPayments); } catch (e) { console.warn('saveCreditPayments:', e); } }
+async function saveUsers() { await apiUpsert('users', users); }
+async function saveClients() { await apiUpsert('clients', clients); }
+async function saveCreditPayments() { await apiUpsert('credit_payments', creditPayments); }
 async function saveCategories() { await apiUpsert('categories', categories); }
 async function saveBrands() { await apiUpsert('brands', brands); }
-async function saveSizes() { try { await apiUpsert('sizes', sizes); } catch (e) { console.warn('saveSizes:', e); showToast('Error al guardar tallas: ' + e.message, 'error'); } }
+async function saveSizes() { await apiUpsert('sizes', sizes); }
 // ============ SECURITY HELPERS (password hashing for user management) ============
 function arrayBufferToBase64(buffer) {
     let binary = '';
