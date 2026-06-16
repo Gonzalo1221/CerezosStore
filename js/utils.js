@@ -122,7 +122,7 @@ async function checkSessionOnLoad() {
 // ============ MODALS ============
 function showModal(id) { 
     document.getElementById(id).classList.add('show'); 
-    if (id === 'checkoutModal') updateCheckoutSummary();
+    if (id === 'checkoutModal' && !editingSaleId) updateCheckoutSummary();
 }
 function hideModal(id) { document.getElementById(id).classList.remove('show'); }
 

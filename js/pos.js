@@ -392,6 +392,7 @@ let editingSaleBackup = null;
 function editSale(saleId) {
     const sale = sales.find(s => s.id === saleId);
     if (!sale) return;
+    console.log('Datos de venta desde DB:', JSON.parse(JSON.stringify(sale)));
     if (sale.status === 'Anulada') { showToast('No se puede editar una venta anulada', 'error'); return; }
     
     editingSaleId = saleId;
@@ -429,17 +430,26 @@ function editSale(saleId) {
     document.getElementById('checkoutNotes').value = sale.notes || '';
     
     if (sale.creditType === 'credito') {
-        toggleCreditOptions();
+        document.getElementById('creditOptions').style.display = 'block';
         document.getElementById('creditDownPayment').value = sale.downPayment || 0;
         document.getElementById('creditInstallments').value = sale.creditInstallments || 1;
-        updateCreditInfo();
 
-        // Overwrite recalculated values with stored values from DB
         const totalFmt = (v) => '$' + parseFloat(v).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-        document.getElementById('checkoutTotal').textContent = totalFmt(sale.total) + ' (financiado)';
         document.getElementById('creditRemaining').textContent = totalFmt(sale.creditBaseFinanced);
+
+        const interestVal = parseFloat(sale.creditInterestAmount) || 0;
+        document.getElementById('creditInterestAmount').parentElement.style.display = interestVal > 0 ? 'flex' : 'none';
         document.getElementById('creditInterestAmount').textContent = '+' + totalFmt(sale.creditInterestAmount);
-        document.getElementById('creditInstallmentValue').textContent = totalFmt(sale.creditInstallmentValue) + ' x ' + sale.creditInstallments;
+
+        document.getElementById('creditInstallmentValue').textContent =
+            totalFmt(sale.creditInstallmentValue) + ' x ' + sale.creditInstallments +
+            (sale.creditInstallments > 1 ? ' cuotas' : ' cuota');
+
+        document.getElementById('checkoutTotal').innerHTML =
+            totalFmt(sale.total) + ' <span style="font-size:11px;color:var(--gray-light);font-weight:400;">(financiado)</span>';
+    } else {
+        const totalFmt = (v) => '$' + parseFloat(v).toLocaleString('es-MX', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        document.getElementById('checkoutTotal').textContent = totalFmt(sale.total);
     }
     
     // Hide "Registrar Nuevo Cliente" button

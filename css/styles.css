@@ -16,6 +16,7 @@
             --info: #2563eb;
             --sidebar-width: 260px;
         }
+        html { background: var(--light); }
         body { font-family: 'Inter', sans-serif; background: var(--light); color: var(--dark); min-height: 100vh; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         
         .login-container {
@@ -1282,11 +1283,11 @@
         .mobile-actions-dropdown {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: var(--white); border-radius: 20px 20px 0 0;
-            box-shadow: 0 -8px 40px rgba(0,0,0,0.2);
+            box-shadow: none;
             z-index: 1100; padding: 0;
             transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .mobile-actions-dropdown.open { transform: translateY(0); }
+        .mobile-actions-dropdown.open { transform: translateY(0); box-shadow: 0 -8px 40px rgba(0,0,0,0.2); }
 
         .mad-overlay {
             display: none; position: fixed; inset: 0;
