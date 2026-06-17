@@ -1,0 +1,4 @@
+[deploy]
+
+[deploy.variables]
+RAILPACK_SPA_OUTPUT_DIR = "."
